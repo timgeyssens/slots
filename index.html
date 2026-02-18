@@ -1251,11 +1251,18 @@ function initializeSheets() {
           availableFrom: parseTime(t.availableFrom),
           availableUntil: parseTime(t.availableUntil)
         }));
-        config = data.config || config;
-        // Parse date and time fields from config
-        if (config.feedbackDate) config.feedbackDate = parseDate(config.feedbackDate);
-        if (config.lunchStart) config.lunchStart = parseTime(config.lunchStart);
-        if (config.lunchEnd) config.lunchEnd = parseTime(config.lunchEnd);
+        
+        // Parse config values immediately
+        const rawConfig = data.config || {};
+        config = {
+          slotDuration: rawConfig.slotDuration || 15,
+          slotsBeforeBreak: rawConfig.slotsBeforeBreak || 4,
+          breakDuration: rawConfig.breakDuration || 15,
+          feedbackDate: parseDate(rawConfig.feedbackDate),
+          lunchStart: parseTime(rawConfig.lunchStart),
+          lunchEnd: parseTime(rawConfig.lunchEnd)
+        };
+        
         bookings = data.bookings || [];
         
         // Update config form with parsed values
