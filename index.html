@@ -1230,23 +1230,11 @@ function initializeSheets() {
     }
     
     async function apiPost(data) {
-      try {
-        const response = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'cors',
-          cache: 'no-cache',
-          redirect: 'follow',
-          body: JSON.stringify(data)
-        });
-        return response.json();
-      } catch (error) {
-        // Google Apps Script sometimes has CORS issues with POST
-        // Fall back to GET with encoded data
-        console.log('POST failed, trying GET fallback:', error);
-        const params = new URLSearchParams({ action: data.action, data: JSON.stringify(data) });
-        const response = await fetch(`${SCRIPT_URL}?${params}`);
-        return response.json();
-      }
+      // Google Apps Script often has issues with POST from different origins
+      // Use GET with encoded data which is more reliable
+      const params = new URLSearchParams({ action: data.action, data: JSON.stringify(data) });
+      const response = await fetch(`${SCRIPT_URL}?${params}`);
+      return response.json();
     }
     
     // Load all data
