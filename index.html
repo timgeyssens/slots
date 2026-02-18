@@ -571,14 +571,12 @@
     
     <!-- Student Panel -->
     <div class="panel active" id="studentPanel">
-      <h2>Beschikbare Feedback Momenten</h2>
+      <h2>Beschikbare Feedback Momenten <span id="studentLoading" class="spinner" style="display: none;"></span></h2>
       <div id="activeSessionInfo" style="background: #e8f5e9; padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; display: none;">
         <strong id="studentSessionName"></strong>
         <span id="feedbackDateDisplay" style="margin-left: 10px;"></span>
       </div>
       <p>Kies een leerkracht en boek je feedback moment. Je kan enkel het eerste beschikbare moment boeken bij elke leerkracht.</p>
-      
-      <div id="studentLoading" class="loading">Momenten laden...</div>
       <div id="noFutureSlots" class="info-box" style="display: none;">
         <strong>Geen momenten beschikbaar</strong><br>
         Er zijn momenteel geen feedback momenten beschikbaar. Probeer later opnieuw.
@@ -1343,7 +1341,7 @@ function initializeSheets() {
       if (!SCRIPT_URL) return;
       
       try {
-        document.getElementById('studentLoading').style.display = 'block';
+        document.getElementById('studentLoading').style.display = 'inline-block';
         document.getElementById('noFutureSlots').style.display = 'none';
         const data = await apiGet('getAll');
         
@@ -1399,8 +1397,9 @@ function initializeSheets() {
         document.getElementById('studentLoading').style.display = 'none';
       } catch (error) {
         console.error('Error loading data:', error);
-        document.getElementById('studentLoading').innerHTML = 
-          '<div class="error">Failed to load data. Check your Script URL.</div>';
+        document.getElementById('studentLoading').style.display = 'none';
+        document.getElementById('slotGrid').innerHTML = 
+          '<div class="error">Laden mislukt. Controleer de configuratie.</div>';
       }
     }
     
