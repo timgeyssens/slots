@@ -836,7 +836,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeModal()">Annuleren</button>
-        <button class="btn-primary" onclick="confirmBooking()">Bevestigen</button>
+        <button class="btn-primary" id="confirmBookingBtn" onclick="confirmBooking()">Bevestigen</button>
       </div>
     </div>
   </div>
@@ -1263,7 +1263,10 @@ function initializeSheets() {
           lunchEnd: parseTime(rawConfig.lunchEnd)
         };
         
-        bookings = data.bookings || [];
+        bookings = (data.bookings || []).map(b => ({
+          ...b,
+          slotTime: parseTime(b.slotTime)
+        }));
         
         // Update config form with parsed values
         document.getElementById('slotDuration').value = config.slotDuration || 15;
@@ -1715,6 +1718,10 @@ function initializeSheets() {
       document.getElementById('bookingInfo').textContent = 
         `Moment boeken bij ${teacher} om ${time}`;
       document.getElementById('bookingModal').classList.add('active');
+      // Reset button state
+      const btn = document.getElementById('confirmBookingBtn');
+      btn.disabled = false;
+      btn.textContent = 'Bevestigen';
     }
     
     function closeModal() {
@@ -1731,20 +1738,36 @@ function initializeSheets() {
         return;
       }
       
-      const result = await apiPost({
-        action: 'bookSlot',
-        teacher: pendingBooking.teacher,
-        slotTime: pendingBooking.time,
-        studentName: name,
-        studentEmail: email
-      });
+      // Show loading state
+      const btn = document.getElementById('confirmBookingBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Bezig met boeken...';
       
-      if (result.success) {
-        alert('Reservatie bevestigd!');
-        closeModal();
-        loadData();
-      } else {
-        alert('Reservatie mislukt: ' + (result.error || 'Onbekende fout'));
+      try {
+        const result = await apiPost({
+          action: 'bookSlot',
+          teacher: pendingBooking.teacher,
+          slotTime: pendingBooking.time,
+          studentName: name,
+          studentEmail: email
+        });
+        
+        if (result.success) {
+          alert('Reservatie bevestigd!');
+          closeModal();
+          // Clear form for next booking
+          document.getElementById('studentName').value = '';
+          document.getElementById('studentEmail').value = '';
+          await loadData(); // Reload to show updated bookings
+        } else {
+          alert('Reservatie mislukt: ' + (result.error || 'Onbekende fout'));
+          btn.disabled = false;
+          btn.textContent = 'Bevestigen';
+        }
+      } catch (error) {
+        alert('Er ging iets mis. Probeer opnieuw.');
+        btn.disabled = false;
+        btn.textContent = 'Bevestigen';
       }
     }
   </script>
