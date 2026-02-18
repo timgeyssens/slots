@@ -1246,8 +1246,16 @@ function initializeSheets() {
         document.getElementById('noFutureSlots').style.display = 'none';
         const data = await apiGet('getAll');
         
-        teachers = data.teachers || [];
+        teachers = (data.teachers || []).map(t => ({
+          ...t,
+          availableFrom: parseTime(t.availableFrom),
+          availableUntil: parseTime(t.availableUntil)
+        }));
         config = data.config || config;
+        // Parse date and time fields from config
+        if (config.feedbackDate) config.feedbackDate = parseDate(config.feedbackDate);
+        if (config.lunchStart) config.lunchStart = parseTime(config.lunchStart);
+        if (config.lunchEnd) config.lunchEnd = parseTime(config.lunchEnd);
         bookings = data.bookings || [];
         
         // Update config form
@@ -1411,6 +1419,45 @@ function initializeSheets() {
       const h = Math.floor(minutes / 60);
       const m = minutes % 60;
       return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+    
+    // Parse time from various formats (HH:MM, ISO datetime, Date object)
+    function parseTime(value) {
+      if (!value) return '';
+      // Already in HH:MM format
+      if (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)) return value;
+      // ISO datetime string (from Google Sheets)
+      if (typeof value === 'string' && value.includes('T')) {
+        const date = new Date(value);
+        return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+      }
+      // Try to parse as date
+      try {
+        const date = new Date(value);
+        if (!isNaN(date)) {
+          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+      } catch (e) {}
+      return String(value);
+    }
+    
+    // Parse date from various formats
+    function parseDate(value) {
+      if (!value) return '';
+      // Already in yyyy-MM-dd format
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+      // ISO datetime string
+      if (typeof value === 'string' && value.includes('T')) {
+        return value.split('T')[0];
+      }
+      // Try to parse as date
+      try {
+        const date = new Date(value);
+        if (!isNaN(date)) {
+          return date.toISOString().split('T')[0];
+        }
+      } catch (e) {}
+      return String(value);
     }
     
     // Render slot grid for students
