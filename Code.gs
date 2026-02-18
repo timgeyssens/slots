@@ -62,10 +62,10 @@ function doPost(e) {
   try {
     switch(action) {
       case 'addTeacher':
-        result = addTeacher(data.name, data.availableFrom, data.availableUntil);
+        result = addTeacher(data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
         break;
       case 'updateTeacher':
-        result = updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil);
+        result = updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
         break;
       case 'deleteTeacher':
         result = deleteTeacher(data.row);
@@ -105,7 +105,9 @@ function getTeachers() {
         row: i + 1,
         name: data[i][0],
         availableFrom: data[i][1],
-        availableUntil: data[i][2]
+        availableUntil: data[i][2],
+        slotsBeforeBreak: data[i][3] || '',
+        breakDuration: data[i][4] !== undefined ? data[i][4] : ''
       });
     }
   }
@@ -116,18 +118,18 @@ function getTeachers() {
 /**
  * Add a new teacher
  */
-function addTeacher(name, availableFrom, availableUntil) {
+function addTeacher(name, availableFrom, availableUntil, slotsBeforeBreak, breakDuration) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET);
-  sheet.appendRow([name, availableFrom, availableUntil]);
+  sheet.appendRow([name, availableFrom, availableUntil, slotsBeforeBreak || '', breakDuration !== undefined ? breakDuration : '']);
   return { success: true };
 }
 
 /**
  * Update an existing teacher
  */
-function updateTeacher(row, name, availableFrom, availableUntil) {
+function updateTeacher(row, name, availableFrom, availableUntil, slotsBeforeBreak, breakDuration) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET);
-  sheet.getRange(row, 1, 1, 3).setValues([[name, availableFrom, availableUntil]]);
+  sheet.getRange(row, 1, 1, 5).setValues([[name, availableFrom, availableUntil, slotsBeforeBreak || '', breakDuration !== undefined ? breakDuration : '']]);
   return { success: true };
 }
 
@@ -233,7 +235,7 @@ function initializeSheets() {
   if (!sheet) {
     sheet = ss.insertSheet(TEACHERS_SHEET);
   }
-  sheet.getRange('A1:C1').setValues([['Teacher Name', 'Available From', 'Available Until']]);
+  sheet.getRange('A1:E1').setValues([['Teacher Name', 'Available From', 'Available Until', 'Slots Before Break', 'Break Duration']]);
   
   // Config sheet
   sheet = ss.getSheetByName(CONFIG_SHEET);

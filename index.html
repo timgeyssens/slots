@@ -629,14 +629,24 @@
             <input type="time" id="teacherUntil" value="16:00">
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Slots Before Break <small>(leave empty for default)</small></label>
+            <input type="number" id="teacherSlotsBeforeBreak" min="1" placeholder="e.g. 4">
+          </div>
+          <div class="form-group">
+            <label>Break Duration (min) <small>(leave empty for default)</small></label>
+            <input type="number" id="teacherBreakDuration" min="0" placeholder="e.g. 15">
+          </div>
+        </div>
         <button class="btn-primary" onclick="addTeacher()">Add Teacher</button>
         
         <table id="teacherTable">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Available From</th>
-              <th>Available Until</th>
+              <th>Hours</th>
+              <th>Breaks</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -863,8 +873,8 @@ function doPost(e) {
   let result;
   try {
     switch(action) {
-      case 'addTeacher': result = addTeacher(data.name, data.availableFrom, data.availableUntil); break;
-      case 'updateTeacher': result = updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil); break;
+      case 'addTeacher': result = addTeacher(data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration); break;
+      case 'updateTeacher': result = updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration); break;
       case 'deleteTeacher': result = deleteTeacher(data.row); break;
       case 'updateConfig': result = updateConfig(data.slotDuration, data.slotsBeforeBreak, data.breakDuration, data.feedbackDate); break;
       case 'bookSlot': result = bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail); break;
@@ -880,18 +890,18 @@ function getTeachers() {
   const data = sheet.getDataRange().getValues();
   const teachers = [];
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0]) teachers.push({ row: i + 1, name: data[i][0], availableFrom: data[i][1], availableUntil: data[i][2] });
+    if (data[i][0]) teachers.push({ row: i + 1, name: data[i][0], availableFrom: data[i][1], availableUntil: data[i][2], slotsBeforeBreak: data[i][3] || '', breakDuration: data[i][4] !== undefined ? data[i][4] : '' });
   }
   return teachers;
 }
 
-function addTeacher(name, availableFrom, availableUntil) {
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET).appendRow([name, availableFrom, availableUntil]);
+function addTeacher(name, availableFrom, availableUntil, slotsBeforeBreak, breakDuration) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET).appendRow([name, availableFrom, availableUntil, slotsBeforeBreak || '', breakDuration !== undefined ? breakDuration : '']);
   return { success: true };
 }
 
-function updateTeacher(row, name, availableFrom, availableUntil) {
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET).getRange(row, 1, 1, 3).setValues([[name, availableFrom, availableUntil]]);
+function updateTeacher(row, name, availableFrom, availableUntil, slotsBeforeBreak, breakDuration) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET).getRange(row, 1, 1, 5).setValues([[name, availableFrom, availableUntil, slotsBeforeBreak || '', breakDuration !== undefined ? breakDuration : '']]);
   return { success: true };
 }
 
@@ -934,7 +944,7 @@ function cancelBooking(row) {
 function initializeSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(TEACHERS_SHEET) || ss.insertSheet(TEACHERS_SHEET);
-  sheet.getRange('A1:C1').setValues([['Teacher Name', 'Available From', 'Available Until']]);
+  sheet.getRange('A1:E1').setValues([['Teacher Name', 'Available From', 'Available Until', 'Slots Before Break', 'Break Duration']]);
   sheet = ss.getSheetByName(CONFIG_SHEET) || ss.insertSheet(CONFIG_SHEET);
   sheet.getRange('A1:B4').setValues([['Slot Duration (min)', 15], ['Slots Before Break', 4], ['Break Duration (min)', 15], ['Feedback Date', '']]);
   sheet = ss.getSheetByName(BOOKINGS_SHEET) || ss.insertSheet(BOOKINGS_SHEET);
@@ -1280,18 +1290,25 @@ function initializeSheets() {
       const [fromH, fromM] = teacher.availableFrom.split(':').map(Number);
       const [untilH, untilM] = teacher.availableUntil.split(':').map(Number);
       
+      // Use teacher-specific break settings, or fall back to global config
+      const slotsBeforeBreak = teacher.slotsBeforeBreak || config.slotsBeforeBreak;
+      const breakDuration = teacher.breakDuration !== undefined && teacher.breakDuration !== '' 
+        ? teacher.breakDuration 
+        : config.breakDuration;
+      
       let currentTime = fromH * 60 + fromM;
       const endTime = untilH * 60 + untilM;
       let slotCount = 0;
       
       while (currentTime + config.slotDuration <= endTime) {
-        // Add break if needed
-        if (slotCount > 0 && slotCount % config.slotsBeforeBreak === 0) {
+        // Add break if needed (only if breakDuration > 0)
+        if (slotCount > 0 && slotsBeforeBreak > 0 && breakDuration > 0 && slotCount % slotsBeforeBreak === 0) {
           slots.push({
             time: formatTime(currentTime),
-            isBreak: true
+            isBreak: true,
+            breakDuration: breakDuration
           });
-          currentTime += config.breakDuration;
+          currentTime += breakDuration;
           if (currentTime + config.slotDuration > endTime) break;
         }
         
@@ -1413,16 +1430,75 @@ function initializeSheets() {
     // Render teacher table for admin
     function renderTeacherTable() {
       const tbody = document.getElementById('teacherTableBody');
-      tbody.innerHTML = teachers.map(t => `
-        <tr>
-          <td>${t.name}</td>
-          <td>${t.availableFrom}</td>
-          <td>${t.availableUntil}</td>
-          <td>
-            <button class="btn-danger" onclick="deleteTeacher(${t.row})">Delete</button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = teachers.map(t => {
+        const breakInfo = t.slotsBeforeBreak 
+          ? `${t.slotsBeforeBreak} slots, ${t.breakDuration || 0}min break`
+          : '<em>Default</em>';
+        return `
+          <tr>
+            <td>${t.name}</td>
+            <td>${t.availableFrom} - ${t.availableUntil}</td>
+            <td>${breakInfo}</td>
+            <td>
+              <button class="btn-secondary" onclick="editTeacher(${t.row}, '${t.name}', '${t.availableFrom}', '${t.availableUntil}', ${t.slotsBeforeBreak || 'null'}, ${t.breakDuration || 'null'})">Edit</button>
+              <button class="btn-danger" onclick="deleteTeacher(${t.row})">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    let editingTeacherRow = null;
+    
+    function editTeacher(row, name, from, until, slotsBeforeBreak, breakDuration) {
+      editingTeacherRow = row;
+      document.getElementById('teacherName').value = name;
+      document.getElementById('teacherFrom').value = from;
+      document.getElementById('teacherUntil').value = until;
+      document.getElementById('teacherSlotsBeforeBreak').value = slotsBeforeBreak || '';
+      document.getElementById('teacherBreakDuration').value = breakDuration || '';
+      
+      // Change button to "Update"
+      const btn = document.querySelector('.card:has(#teacherName) .btn-primary');
+      btn.textContent = 'Update Teacher';
+      btn.onclick = updateTeacher;
+    }
+    
+    function cancelEdit() {
+      editingTeacherRow = null;
+      document.getElementById('teacherName').value = '';
+      document.getElementById('teacherSlotsBeforeBreak').value = '';
+      document.getElementById('teacherBreakDuration').value = '';
+      
+      const btn = document.querySelector('.card:has(#teacherName) .btn-primary');
+      btn.textContent = 'Add Teacher';
+      btn.onclick = addTeacher;
+    }
+    
+    async function updateTeacher() {
+      const name = document.getElementById('teacherName').value.trim();
+      const from = document.getElementById('teacherFrom').value;
+      const until = document.getElementById('teacherUntil').value;
+      const slotsBeforeBreak = document.getElementById('teacherSlotsBeforeBreak').value;
+      const breakDuration = document.getElementById('teacherBreakDuration').value;
+      
+      if (!name) {
+        alert('Please enter a teacher name');
+        return;
+      }
+      
+      await apiPost({
+        action: 'updateTeacher',
+        row: editingTeacherRow,
+        name: name,
+        availableFrom: from,
+        availableUntil: until,
+        slotsBeforeBreak: slotsBeforeBreak ? parseInt(slotsBeforeBreak) : '',
+        breakDuration: breakDuration ? parseInt(breakDuration) : ''
+      });
+      
+      cancelEdit();
+      loadData();
     }
     
     // Render bookings table for admin
@@ -1452,6 +1528,8 @@ function initializeSheets() {
       const name = document.getElementById('teacherName').value.trim();
       const from = document.getElementById('teacherFrom').value;
       const until = document.getElementById('teacherUntil').value;
+      const slotsBeforeBreak = document.getElementById('teacherSlotsBeforeBreak').value;
+      const breakDuration = document.getElementById('teacherBreakDuration').value;
       
       if (!name) {
         alert('Please enter a teacher name');
@@ -1462,10 +1540,14 @@ function initializeSheets() {
         action: 'addTeacher',
         name: name,
         availableFrom: from,
-        availableUntil: until
+        availableUntil: until,
+        slotsBeforeBreak: slotsBeforeBreak ? parseInt(slotsBeforeBreak) : '',
+        breakDuration: breakDuration ? parseInt(breakDuration) : ''
       });
       
       document.getElementById('teacherName').value = '';
+      document.getElementById('teacherSlotsBeforeBreak').value = '';
+      document.getElementById('teacherBreakDuration').value = '';
       loadData();
     }
     
