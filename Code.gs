@@ -16,32 +16,38 @@ const CONFIG_SHEET = 'Config';
 const BOOKINGS_SHEET = 'Bookings';
 
 /**
- * Handle GET requests - fetch data
+ * Handle GET requests - fetch data (also handles POST fallback)
  */
 function doGet(e) {
   const action = e.parameter.action;
   let result;
   
   try {
-    switch(action) {
-      case 'getTeachers':
-        result = getTeachers();
-        break;
-      case 'getConfig':
-        result = getConfig();
-        break;
-      case 'getBookings':
-        result = getBookings();
-        break;
-      case 'getAll':
-        result = {
-          teachers: getTeachers(),
-          config: getConfig(),
-          bookings: getBookings()
-        };
-        break;
-      default:
-        result = { error: 'Unknown action' };
+    // Check if this is a POST fallback (has 'data' parameter)
+    if (e.parameter.data) {
+      const data = JSON.parse(e.parameter.data);
+      result = handlePostAction(data);
+    } else {
+      switch(action) {
+        case 'getTeachers':
+          result = getTeachers();
+          break;
+        case 'getConfig':
+          result = getConfig();
+          break;
+        case 'getBookings':
+          result = getBookings();
+          break;
+        case 'getAll':
+          result = {
+            teachers: getTeachers(),
+            config: getConfig(),
+            bookings: getBookings()
+          };
+          break;
+        default:
+          result = { error: 'Unknown action' };
+      }
     }
   } catch (error) {
     result = { error: error.toString() };
@@ -52,36 +58,38 @@ function doGet(e) {
 }
 
 /**
+ * Handle POST action (shared between doPost and doGet fallback)
+ */
+function handlePostAction(data) {
+  const action = data.action;
+  
+  switch(action) {
+    case 'addTeacher':
+      return addTeacher(data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
+    case 'updateTeacher':
+      return updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
+    case 'deleteTeacher':
+      return deleteTeacher(data.row);
+    case 'updateConfig':
+      return updateConfig(data.slotDuration, data.slotsBeforeBreak, data.breakDuration, data.feedbackDate, data.lunchStart, data.lunchEnd);
+    case 'bookSlot':
+      return bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail);
+    case 'cancelBooking':
+      return cancelBooking(data.row);
+    default:
+      return { error: 'Unknown action' };
+  }
+}
+
+/**
  * Handle POST requests - create/update data
  */
 function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const action = data.action;
   let result;
   
   try {
-    switch(action) {
-      case 'addTeacher':
-        result = addTeacher(data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
-        break;
-      case 'updateTeacher':
-        result = updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
-        break;
-      case 'deleteTeacher':
-        result = deleteTeacher(data.row);
-        break;
-      case 'updateConfig':
-        result = updateConfig(data.slotDuration, data.slotsBeforeBreak, data.breakDuration, data.feedbackDate);
-        break;
-      case 'bookSlot':
-        result = bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail);
-        break;
-      case 'cancelBooking':
-        result = cancelBooking(data.row);
-        break;
-      default:
-        result = { error: 'Unknown action' };
-    }
+    const data = JSON.parse(e.postData.contents);
+    result = handlePostAction(data);
   } catch (error) {
     result = { error: error.toString() };
   }
@@ -153,20 +161,24 @@ function getConfig() {
     slotDuration: data[0] ? data[0][1] || 15 : 15,
     slotsBeforeBreak: data[1] ? data[1][1] || 4 : 4,
     breakDuration: data[2] ? data[2][1] || 15 : 15,
-    feedbackDate: data[3] ? data[3][1] || '' : ''
+    feedbackDate: data[3] ? data[3][1] || '' : '',
+    lunchStart: data[4] ? data[4][1] || '' : '',
+    lunchEnd: data[5] ? data[5][1] || '' : ''
   };
 }
 
 /**
  * Update configuration
  */
-function updateConfig(slotDuration, slotsBeforeBreak, breakDuration, feedbackDate) {
+function updateConfig(slotDuration, slotsBeforeBreak, breakDuration, feedbackDate, lunchStart, lunchEnd) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET);
-  sheet.getRange('A1:B4').setValues([
+  sheet.getRange('A1:B6').setValues([
     ['Slot Duration (min)', slotDuration],
     ['Slots Before Break', slotsBeforeBreak],
     ['Break Duration (min)', breakDuration],
-    ['Feedback Date', feedbackDate || '']
+    ['Feedback Date', feedbackDate || ''],
+    ['Lunch Start', lunchStart || ''],
+    ['Lunch End', lunchEnd || '']
   ]);
   return { success: true };
 }
@@ -242,11 +254,13 @@ function initializeSheets() {
   if (!sheet) {
     sheet = ss.insertSheet(CONFIG_SHEET);
   }
-  sheet.getRange('A1:B4').setValues([
+  sheet.getRange('A1:B6').setValues([
     ['Slot Duration (min)', 15],
     ['Slots Before Break', 4],
     ['Break Duration (min)', 15],
-    ['Feedback Date', '']
+    ['Feedback Date', ''],
+    ['Lunch Start', '12:00'],
+    ['Lunch End', '13:00']
   ]);
   
   // Bookings sheet

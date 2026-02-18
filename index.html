@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Feedback Slot Booking</title>
+  <title>Feedback Momenten Boeken</title>
   <script src="https://accounts.google.com/gsi/client"></script>
   <script src="https://apis.google.com/js/api.js"></script>
   <style>
@@ -542,112 +542,125 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎓 Feedback Slot Booking</h1>
+    <h1>🎓 Feedback Momenten</h1>
     
     <div class="config-notice" id="configNotice" style="display: none;">
-      <strong>Setup Required:</strong> Connect to Google Sheets to get started.
+      <strong>Instelling vereist:</strong> Verbind met Google Sheets om te beginnen.
       <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button class="btn-primary" onclick="openWizard()">🚀 Setup Wizard</button>
-        <button class="btn-secondary" onclick="showManualSetup()">Manual Setup</button>
+        <button class="btn-primary" onclick="openWizard()">🚀 Installatiewizard</button>
+        <button class="btn-secondary" onclick="showManualSetup()">Handmatige Setup</button>
       </div>
       <div id="manualSetup" style="display: none; margin-top: 15px;">
         <div class="form-group" style="margin-bottom: 0;">
           <label>Google Apps Script URL:</label>
           <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/xxx/exec">
-          <button class="btn-primary" style="margin-top: 10px;" onclick="saveScriptUrl()">Save URL</button>
+          <button class="btn-primary" style="margin-top: 10px;" onclick="saveScriptUrl()">URL Opslaan</button>
         </div>
       </div>
     </div>
     
     <div class="tabs" id="mainTabs" style="display: none;">
-      <button class="tab active" onclick="showTab('student')">📅 Book a Slot</button>
-      <button class="tab" onclick="showTab('admin')" id="adminTabBtn" style="display: none;">⚙️ Admin</button>
+      <button class="tab active" onclick="showTab('student')">📅 Moment Boeken</button>
+      <button class="tab" onclick="showTab('admin')" id="adminTabBtn" style="display: none;">⚙️ Beheer</button>
     </div>
     
     <!-- Admin Access (hidden by default) -->
     <div id="adminAccessHint" style="display: none; text-align: right; margin-bottom: 10px;">
-      <small><a href="#" onclick="toggleAdminMode(); return false;" style="color: #999;">Admin Access</a></small>
+      <small><a href="#" onclick="toggleAdminMode(); return false;" style="color: #999;">Beheerder</a></small>
     </div>
     
     <!-- Student Panel -->
     <div class="panel active" id="studentPanel">
-      <h2>Available Feedback Slots</h2>
+      <h2>Beschikbare Feedback Momenten</h2>
       <p id="feedbackDateDisplay"></p>
-      <p>Select a teacher and book your feedback slot. You can only book the first available slot for each teacher.</p>
+      <p>Kies een leerkracht en boek je feedback moment. Je kan enkel het eerste beschikbare moment boeken bij elke leerkracht.</p>
       
-      <div id="studentLoading" class="loading">Loading slots...</div>
+      <div id="studentLoading" class="loading">Momenten laden...</div>
       <div id="noFutureSlots" class="info-box" style="display: none;">
-        <strong>No slots available</strong><br>
-        There are no future feedback slots available at this time. Please check back later.
+        <strong>Geen momenten beschikbaar</strong><br>
+        Er zijn momenteel geen feedback momenten beschikbaar. Probeer later opnieuw.
       </div>
       <div id="slotGrid" class="slot-grid"></div>
     </div>
     
     <!-- Admin Panel -->
     <div class="panel" id="adminPanel">
-      <h2>Administration</h2>
+      <h2>Beheer</h2>
       
       <!-- Config Section -->
       <div class="card">
-        <h3>⏱️ Slot Configuration</h3>
+        <h3>⏱️ Instellingen</h3>
         <div class="form-group">
-          <label>Feedback Date</label>
+          <label>Feedback Datum</label>
           <input type="date" id="feedbackDate">
-          <small style="color: #666;">The date when feedback sessions will take place</small>
+          <small style="color: #666;">De datum waarop de feedback gesprekken plaatsvinden</small>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Slot Duration (minutes)</label>
+            <label>Duur per moment (minuten)</label>
             <input type="number" id="slotDuration" min="5" value="15">
           </div>
           <div class="form-group">
-            <label>Slots Before Break</label>
+            <label>Momenten voor pauze</label>
             <input type="number" id="slotsBeforeBreak" min="1" value="4">
           </div>
           <div class="form-group">
-            <label>Break Duration (minutes)</label>
+            <label>Pauze duur (minuten)</label>
             <input type="number" id="breakDuration" min="5" value="15">
           </div>
         </div>
-        <button class="btn-primary" onclick="saveConfig()">Save Configuration</button>
+        <div class="form-row">
+          <div class="form-group">
+            <label>🍽️ Middagpauze Start</label>
+            <input type="time" id="lunchStart" value="12:00">
+          </div>
+          <div class="form-group">
+            <label>🍽️ Middagpauze Einde</label>
+            <input type="time" id="lunchEnd" value="13:00">
+          </div>
+        </div>
+        <small style="color: #666;">Geen momenten tijdens de middagpauze. Laat leeg om uit te schakelen.</small>
+        <div style="margin-top: 15px;">
+          <button class="btn-primary" onclick="saveConfig()">Instellingen Opslaan</button>
+        </div>
       </div>
       
       <!-- Teachers Section -->
       <div class="card">
-        <h3>👨‍🏫 Teachers</h3>
+        <h3>👨‍🏫 Leerkrachten</h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Teacher Name</label>
-            <input type="text" id="teacherName" placeholder="Mr. Smith">
+            <label>Naam</label>
+            <input type="text" id="teacherName" placeholder="Juf Katrien">
           </div>
           <div class="form-group">
-            <label>Available From</label>
+            <label>Beschikbaar Vanaf</label>
             <input type="time" id="teacherFrom" value="09:00">
           </div>
           <div class="form-group">
-            <label>Available Until</label>
+            <label>Beschikbaar Tot</label>
             <input type="time" id="teacherUntil" value="16:00">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Slots Before Break <small>(leave empty for default)</small></label>
-            <input type="number" id="teacherSlotsBeforeBreak" min="1" placeholder="e.g. 4">
+            <label>Momenten voor pauze <small>(leeg = standaard)</small></label>
+            <input type="number" id="teacherSlotsBeforeBreak" min="1" placeholder="bv. 4">
           </div>
           <div class="form-group">
-            <label>Break Duration (min) <small>(leave empty for default)</small></label>
-            <input type="number" id="teacherBreakDuration" min="0" placeholder="e.g. 15">
+            <label>Pauze duur (min) <small>(leeg = standaard)</small></label>
+            <input type="number" id="teacherBreakDuration" min="0" placeholder="bv. 15">
           </div>
         </div>
-        <button class="btn-primary" onclick="addTeacher()">Add Teacher</button>
+        <button class="btn-primary" onclick="addTeacher()">Leerkracht Toevoegen</button>
         
         <table id="teacherTable">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Hours</th>
-              <th>Breaks</th>
-              <th>Actions</th>
+              <th>Naam</th>
+              <th>Uren</th>
+              <th>Pauzes</th>
+              <th>Acties</th>
             </tr>
           </thead>
           <tbody id="teacherTableBody">
@@ -657,16 +670,16 @@
       
       <!-- Bookings Section -->
       <div class="card">
-        <h3>📋 Bookings</h3>
-        <button class="btn-secondary" onclick="loadData()" style="margin-bottom: 15px;">Refresh Bookings</button>
+        <h3>📋 Reservaties</h3>
+        <button class="btn-secondary" onclick="loadData()" style="margin-bottom: 15px;">Vernieuwen</button>
         <table id="bookingsTable">
           <thead>
             <tr>
-              <th>Teacher</th>
-              <th>Time</th>
-              <th>Student</th>
+              <th>Leerkracht</th>
+              <th>Tijdstip</th>
+              <th>Leerling</th>
               <th>Email</th>
-              <th>Actions</th>
+              <th>Acties</th>
             </tr>
           </thead>
           <tbody id="bookingsTableBody">
@@ -680,8 +693,8 @@
   <div class="wizard-overlay" id="wizardOverlay">
     <div class="wizard-container">
       <div class="wizard-header">
-        <h2>🎓 Slot Booking Setup</h2>
-        <p>Let's connect to Google Sheets in a few easy steps</p>
+        <h2>🎓 Feedback Momenten Setup</h2>
+        <p>Verbind met Google Sheets in enkele eenvoudige stappen</p>
       </div>
       <div class="wizard-body">
         <div class="step-indicator">
@@ -693,115 +706,115 @@
         
         <!-- Step 1: Google Cloud Setup -->
         <div class="wizard-step active" id="step1">
-          <h3>Step 1: Google Cloud Setup (One-time)</h3>
+          <h3>Stap 1: Google Cloud Setup (eenmalig)</h3>
           <div class="step-content">
-            <p>To connect with Google Sheets, you need a Google Cloud project. This is free and only takes a few minutes.</p>
+            <p>Om te verbinden met Google Sheets heb je een Google Cloud project nodig. Dit is gratis en duurt slechts enkele minuten.</p>
             
             <div class="info-box">
-              <strong>Quick Setup:</strong>
+              <strong>Snelle Setup:</strong>
               <ol>
-                <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></li>
-                <li>Create a new project (or select existing)</li>
-                <li>Click "+ CREATE CREDENTIALS" → "OAuth client ID"</li>
-                <li>If prompted, configure OAuth consent screen (External, add your email as test user)</li>
+                <li>Ga naar <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></li>
+                <li>Maak een nieuw project (of selecteer bestaand)</li>
+                <li>Klik "+ CREATE CREDENTIALS" → "OAuth client ID"</li>
+                <li>Indien gevraagd, configureer OAuth consent screen (External, voeg je email toe als test user)</li>
                 <li>Application type: "Web application"</li>
-                <li>Add Authorized JavaScript origin: <code id="currentOrigin">http://localhost</code></li>
-                <li>Click "Create" and copy your <strong>Client ID</strong></li>
+                <li>Voeg Authorized JavaScript origin toe: <code id="currentOrigin">http://localhost</code></li>
+                <li>Klik "Create" en kopieer je <strong>Client ID</strong></li>
               </ol>
             </div>
             
             <div class="info-box warning">
-              <strong>Also enable the Sheets API:</strong>
+              <strong>Schakel ook de Sheets API in:</strong>
               <ol>
-                <li>Go to <a href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank">Sheets API</a></li>
-                <li>Click "Enable"</li>
+                <li>Ga naar <a href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank">Sheets API</a></li>
+                <li>Klik "Enable"</li>
               </ol>
             </div>
             
             <div class="form-group">
-              <label>Your Google Client ID:</label>
+              <label>Je Google Client ID:</label>
               <input type="text" id="googleClientId" placeholder="xxx.apps.googleusercontent.com">
             </div>
           </div>
           <div class="wizard-actions">
-            <button class="btn-skip" onclick="closeWizard()">Cancel</button>
-            <button class="btn-primary" onclick="saveClientIdAndNext()">Continue →</button>
+            <button class="btn-skip" onclick="closeWizard()">Annuleren</button>
+            <button class="btn-primary" onclick="saveClientIdAndNext()">Volgende →</button>
           </div>
         </div>
         
         <!-- Step 2: Sign In -->
         <div class="wizard-step" id="step2">
-          <h3>Step 2: Sign in with Google</h3>
+          <h3>Stap 2: Aanmelden met Google</h3>
           <div class="step-content">
-            <p>Sign in to allow the app to create a Google Sheet for you.</p>
+            <p>Meld je aan zodat de app een Google Sheet voor je kan aanmaken.</p>
             
             <button class="google-btn" onclick="signInWithGoogle()" id="googleSignInBtn">
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
-              Sign in with Google
+              Aanmelden met Google
             </button>
             
             <div id="signInStatus" style="text-align: center; margin-top: 15px;"></div>
           </div>
           <div class="wizard-actions">
-            <button class="btn-skip" onclick="goToStep(1)">← Back</button>
-            <button class="btn-primary" onclick="goToStep(3)" id="step2NextBtn" disabled>Continue →</button>
+            <button class="btn-skip" onclick="goToStep(1)">← Terug</button>
+            <button class="btn-primary" onclick="goToStep(3)" id="step2NextBtn" disabled>Volgende →</button>
           </div>
         </div>
         
         <!-- Step 3: Create Sheet -->
         <div class="wizard-step" id="step3">
-          <h3>Step 3: Create Google Sheet</h3>
+          <h3>Stap 3: Google Sheet Aanmaken</h3>
           <div class="step-content">
-            <p>Click the button below to create a new Google Sheet with the correct structure.</p>
+            <p>Klik op de knop hieronder om een nieuwe Google Sheet aan te maken met de juiste structuur.</p>
             
             <button class="btn-primary" style="width: 100%; padding: 15px;" onclick="createGoogleSheet()" id="createSheetBtn">
-              📊 Create Feedback Slots Sheet
+              📊 Feedback Momenten Sheet Aanmaken
             </button>
             
             <div id="createSheetStatus" style="margin-top: 15px;"></div>
           </div>
           <div class="wizard-actions">
-            <button class="btn-skip" onclick="goToStep(2)">← Back</button>
-            <button class="btn-primary" onclick="goToStep(4)" id="step3NextBtn" disabled>Continue →</button>
+            <button class="btn-skip" onclick="goToStep(2)">← Terug</button>
+            <button class="btn-primary" onclick="goToStep(4)" id="step3NextBtn" disabled>Volgende →</button>
           </div>
         </div>
         
         <!-- Step 4: Add Apps Script -->
         <div class="wizard-step" id="step4">
-          <h3>Step 4: Add the Backend Script</h3>
+          <h3>Stap 4: Backend Script Toevoegen</h3>
           <div class="step-content">
-            <p>Open your new sheet and add the Apps Script backend:</p>
+            <p>Open je nieuwe sheet en voeg het Apps Script toe:</p>
             
             <a class="sheet-link" id="sheetLink" href="#" target="_blank">
-              📄 Open Your Google Sheet
+              📄 Open Je Google Sheet
             </a>
             
             <div class="info-box">
-              <strong>In your Google Sheet:</strong>
+              <strong>In je Google Sheet:</strong>
               <ol>
-                <li>Go to <strong>Extensions → Apps Script</strong></li>
-                <li>Delete any existing code</li>
-                <li>Paste the code below and save</li>
-                <li>Click <strong>Run → initializeSheets</strong> (grant permissions)</li>
-                <li>Click <strong>Deploy → New deployment</strong></li>
+                <li>Ga naar <strong>Extensions → Apps Script</strong></li>
+                <li>Verwijder bestaande code</li>
+                <li>Plak de code hieronder en sla op</li>
+                <li>Klik <strong>Run → initializeSheets</strong> (geef toestemming)</li>
+                <li>Klik <strong>Deploy → New deployment</strong></li>
                 <li>Type: Web app, Execute as: Me, Access: Anyone</li>
-                <li>Copy the deployment URL and paste below</li>
+                <li>Kopieer de deployment URL en plak hieronder</li>
               </ol>
             </div>
             
             <div class="code-block" id="appsScriptCode">
-              <button class="copy-btn" onclick="copyAppsScript()">Copy Code</button>
-              <pre style="margin: 0; white-space: pre-wrap;">// Click "Copy Code" above to copy the full Apps Script</pre>
+              <button class="copy-btn" onclick="copyAppsScript()">Code Kopiëren</button>
+              <pre style="margin: 0; white-space: pre-wrap;">// Klik "Code Kopiëren" hierboven om de volledige Apps Script te kopiëren</pre>
             </div>
             
             <div class="form-group" style="margin-top: 20px;">
-              <label>Paste your deployed Apps Script URL:</label>
+              <label>Plak je deployed Apps Script URL:</label>
               <input type="text" id="wizardScriptUrl" placeholder="https://script.google.com/macros/s/xxx/exec">
             </div>
           </div>
           <div class="wizard-actions">
-            <button class="btn-skip" onclick="goToStep(3)">← Back</button>
-            <button class="btn-primary" onclick="finishWizard()">✓ Finish Setup</button>
+            <button class="btn-skip" onclick="goToStep(3)">← Terug</button>
+            <button class="btn-primary" onclick="finishWizard()">✓ Setup Voltooien</button>
           </div>
         </div>
       </div>
@@ -811,19 +824,19 @@
   <!-- Booking Modal -->
   <div class="modal" id="bookingModal">
     <div class="modal-content">
-      <h2>Book Feedback Slot</h2>
+      <h2>Feedback Moment Boeken</h2>
       <p id="bookingInfo"></p>
       <div class="form-group">
-        <label>Your Name</label>
-        <input type="text" id="studentName" placeholder="John Doe">
+        <label>Je Naam</label>
+        <input type="text" id="studentName" placeholder="Jan Janssens">
       </div>
       <div class="form-group">
-        <label>Your Email</label>
-        <input type="email" id="studentEmail" placeholder="john@school.edu">
+        <label>Je Email</label>
+        <input type="email" id="studentEmail" placeholder="jan@school.be">
       </div>
       <div class="modal-actions">
-        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn-primary" onclick="confirmBooking()">Confirm Booking</button>
+        <button class="btn-secondary" onclick="closeModal()">Annuleren</button>
+        <button class="btn-primary" onclick="confirmBooking()">Bevestigen</button>
       </div>
     </div>
   </div>
@@ -838,7 +851,7 @@
     
     // State
     let teachers = [];
-    let config = { slotDuration: 15, slotsBeforeBreak: 4, breakDuration: 15, feedbackDate: '' };
+    let config = { slotDuration: 15, slotsBeforeBreak: 4, breakDuration: 15, feedbackDate: '', lunchStart: '', lunchEnd: '' };
     let bookings = [];
     let pendingBooking = null;
     let adminMode = false;
@@ -856,31 +869,39 @@ function doGet(e) {
   const action = e.parameter.action;
   let result;
   try {
-    switch(action) {
-      case 'getTeachers': result = getTeachers(); break;
-      case 'getConfig': result = getConfig(); break;
-      case 'getBookings': result = getBookings(); break;
-      case 'getAll': result = { teachers: getTeachers(), config: getConfig(), bookings: getBookings() }; break;
-      default: result = { error: 'Unknown action' };
+    if (e.parameter.data) {
+      const data = JSON.parse(e.parameter.data);
+      result = handlePostAction(data);
+    } else {
+      switch(action) {
+        case 'getTeachers': result = getTeachers(); break;
+        case 'getConfig': result = getConfig(); break;
+        case 'getBookings': result = getBookings(); break;
+        case 'getAll': result = { teachers: getTeachers(), config: getConfig(), bookings: getBookings() }; break;
+        default: result = { error: 'Unknown action' };
+      }
     }
   } catch (error) { result = { error: error.toString() }; }
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
+function handlePostAction(data) {
+  switch(data.action) {
+    case 'addTeacher': return addTeacher(data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
+    case 'updateTeacher': return updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration);
+    case 'deleteTeacher': return deleteTeacher(data.row);
+    case 'updateConfig': return updateConfig(data.slotDuration, data.slotsBeforeBreak, data.breakDuration, data.feedbackDate, data.lunchStart, data.lunchEnd);
+    case 'bookSlot': return bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail);
+    case 'cancelBooking': return cancelBooking(data.row);
+    default: return { error: 'Unknown action' };
+  }
+}
+
 function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const action = data.action;
   let result;
   try {
-    switch(action) {
-      case 'addTeacher': result = addTeacher(data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration); break;
-      case 'updateTeacher': result = updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil, data.slotsBeforeBreak, data.breakDuration); break;
-      case 'deleteTeacher': result = deleteTeacher(data.row); break;
-      case 'updateConfig': result = updateConfig(data.slotDuration, data.slotsBeforeBreak, data.breakDuration, data.feedbackDate); break;
-      case 'bookSlot': result = bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail); break;
-      case 'cancelBooking': result = cancelBooking(data.row); break;
-      default: result = { error: 'Unknown action' };
-    }
+    const data = JSON.parse(e.postData.contents);
+    result = handlePostAction(data);
   } catch (error) { result = { error: error.toString() }; }
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -912,11 +933,11 @@ function deleteTeacher(row) {
 
 function getConfig() {
   const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET).getDataRange().getValues();
-  return { slotDuration: data[0] ? data[0][1] || 15 : 15, slotsBeforeBreak: data[1] ? data[1][1] || 4 : 4, breakDuration: data[2] ? data[2][1] || 15 : 15, feedbackDate: data[3] ? data[3][1] || '' : '' };
+  return { slotDuration: data[0] ? data[0][1] || 15 : 15, slotsBeforeBreak: data[1] ? data[1][1] || 4 : 4, breakDuration: data[2] ? data[2][1] || 15 : 15, feedbackDate: data[3] ? data[3][1] || '' : '', lunchStart: data[4] ? data[4][1] || '' : '', lunchEnd: data[5] ? data[5][1] || '' : '' };
 }
 
-function updateConfig(slotDuration, slotsBeforeBreak, breakDuration, feedbackDate) {
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET).getRange('A1:B4').setValues([['Slot Duration (min)', slotDuration], ['Slots Before Break', slotsBeforeBreak], ['Break Duration (min)', breakDuration], ['Feedback Date', feedbackDate || '']]);
+function updateConfig(slotDuration, slotsBeforeBreak, breakDuration, feedbackDate, lunchStart, lunchEnd) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET).getRange('A1:B6').setValues([['Slot Duration (min)', slotDuration], ['Slots Before Break', slotsBeforeBreak], ['Break Duration (min)', breakDuration], ['Feedback Date', feedbackDate || ''], ['Lunch Start', lunchStart || ''], ['Lunch End', lunchEnd || '']]);
   return { success: true };
 }
 
@@ -946,7 +967,7 @@ function initializeSheets() {
   let sheet = ss.getSheetByName(TEACHERS_SHEET) || ss.insertSheet(TEACHERS_SHEET);
   sheet.getRange('A1:E1').setValues([['Teacher Name', 'Available From', 'Available Until', 'Slots Before Break', 'Break Duration']]);
   sheet = ss.getSheetByName(CONFIG_SHEET) || ss.insertSheet(CONFIG_SHEET);
-  sheet.getRange('A1:B4').setValues([['Slot Duration (min)', 15], ['Slots Before Break', 4], ['Break Duration (min)', 15], ['Feedback Date', '']]);
+  sheet.getRange('A1:B6').setValues([['Slot Duration (min)', 15], ['Slots Before Break', 4], ['Break Duration (min)', 15], ['Feedback Date', ''], ['Lunch Start', '12:00'], ['Lunch End', '13:00']]);
   sheet = ss.getSheetByName(BOOKINGS_SHEET) || ss.insertSheet(BOOKINGS_SHEET);
   sheet.getRange('A1:E1').setValues([['Teacher', 'Slot Time', 'Student Name', 'Student Email', 'Timestamp']]);
 }`;
@@ -1027,9 +1048,9 @@ function initializeSheets() {
           if (response.access_token) {
             accessToken = response.access_token;
             document.getElementById('signInStatus').innerHTML = 
-              '<span style="color: #4CAF50;">✓ Signed in successfully!</span>';
+              '<span style="color: #4CAF50;">✓ Succesvol aangemeld!</span>';
             document.getElementById('step2NextBtn').disabled = false;
-            document.getElementById('googleSignInBtn').textContent = '✓ Signed In';
+            document.getElementById('googleSignInBtn').textContent = '✓ Aangemeld';
             document.getElementById('googleSignInBtn').disabled = true;
           }
         },
@@ -1048,7 +1069,7 @@ function initializeSheets() {
       const status = document.getElementById('createSheetStatus');
       
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Creating...';
+      btn.innerHTML = '<span class="spinner"></span> Aanmaken...';
       status.innerHTML = '';
       
       try {
@@ -1121,8 +1142,8 @@ function initializeSheets() {
         
         status.innerHTML = `
           <div class="success">
-            ✓ Sheet created successfully!<br>
-            <a href="${createdSheetUrl}" target="_blank">Open Sheet</a>
+            ✓ Sheet succesvol aangemaakt!<br>
+            <a href="${createdSheetUrl}" target="_blank">Sheet Openen</a>
           </div>
         `;
         
@@ -1130,27 +1151,27 @@ function initializeSheets() {
         document.getElementById('sheetLink').href = createdSheetUrl;
         document.getElementById('step3NextBtn').disabled = false;
         
-        btn.innerHTML = '✓ Sheet Created';
+        btn.innerHTML = '✓ Sheet Aangemaakt';
         
       } catch (error) {
         status.innerHTML = `<div class="error">Error: ${error.message}</div>`;
         btn.disabled = false;
-        btn.innerHTML = '📊 Create Feedback Slots Sheet';
+        btn.innerHTML = '📊 Feedback Momenten Sheet Aanmaken';
       }
     }
     
     function copyAppsScript() {
       navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(() => {
         const btn = document.querySelector('.copy-btn');
-        btn.textContent = '✓ Copied!';
-        setTimeout(() => btn.textContent = 'Copy Code', 2000);
+        btn.textContent = '✓ Gekopieerd!';
+        setTimeout(() => btn.textContent = 'Code Kopi\u00ebren', 2000);
       });
     }
     
     function finishWizard() {
       const url = document.getElementById('wizardScriptUrl').value.trim();
       if (!url || !url.includes('script.google.com')) {
-        alert('Please paste your deployed Apps Script URL');
+        alert('Plak je deployed Apps Script URL');
         return;
       }
       
@@ -1168,7 +1189,7 @@ function initializeSheets() {
       document.getElementById('adminTabBtn').style.display = 'block';
       showTab('admin');
       
-      alert('🎉 Setup complete! Configure your feedback date and add teachers.');
+      alert('🎉 Setup voltooid! Configureer je feedback datum en voeg leerkrachten toe.');
     }
     
     function toggleAdminMode() {
@@ -1209,11 +1230,23 @@ function initializeSheets() {
     }
     
     async function apiPost(data) {
-      const response = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      return response.json();
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-cache',
+          redirect: 'follow',
+          body: JSON.stringify(data)
+        });
+        return response.json();
+      } catch (error) {
+        // Google Apps Script sometimes has CORS issues with POST
+        // Fall back to GET with encoded data
+        console.log('POST failed, trying GET fallback:', error);
+        const params = new URLSearchParams({ action: data.action, data: JSON.stringify(data) });
+        const response = await fetch(`${SCRIPT_URL}?${params}`);
+        return response.json();
+      }
     }
     
     // Load all data
@@ -1233,6 +1266,8 @@ function initializeSheets() {
         document.getElementById('slotDuration').value = config.slotDuration;
         document.getElementById('slotsBeforeBreak').value = config.slotsBeforeBreak;
         document.getElementById('breakDuration').value = config.breakDuration;
+        document.getElementById('lunchStart').value = config.lunchStart || '';
+        document.getElementById('lunchEnd').value = config.lunchEnd || '';
         if (config.feedbackDate) {
           document.getElementById('feedbackDate').value = config.feedbackDate;
         }
@@ -1257,9 +1292,9 @@ function initializeSheets() {
       if (config.feedbackDate) {
         const date = new Date(config.feedbackDate + 'T00:00:00');
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        dateDisplay.innerHTML = `<strong>📅 Feedback Date:</strong> ${date.toLocaleDateString(undefined, options)}`;
+        dateDisplay.innerHTML = `<strong>📅 Feedback Datum:</strong> ${date.toLocaleDateString('nl-BE', options)}`;
       } else {
-        dateDisplay.innerHTML = '<em>No feedback date set yet.</em>';
+        dateDisplay.innerHTML = '<em>Nog geen feedback datum ingesteld.</em>';
       }
     }
     
@@ -1284,6 +1319,21 @@ function initializeSheets() {
       return feedbackDate < now;
     }
     
+    // Check if a time falls within lunch break
+    function isDuringLunch(timeMinutes, durationMinutes) {
+      if (!config.lunchStart || !config.lunchEnd) return false;
+      
+      const [lunchStartH, lunchStartM] = config.lunchStart.split(':').map(Number);
+      const [lunchEndH, lunchEndM] = config.lunchEnd.split(':').map(Number);
+      const lunchStart = lunchStartH * 60 + lunchStartM;
+      const lunchEnd = lunchEndH * 60 + lunchEndM;
+      
+      const slotEnd = timeMinutes + durationMinutes;
+      
+      // Slot overlaps with lunch if it starts before lunch ends AND ends after lunch starts
+      return timeMinutes < lunchEnd && slotEnd > lunchStart;
+    }
+    
     // Generate time slots for a teacher
     function generateSlots(teacher) {
       const slots = [];
@@ -1296,20 +1346,55 @@ function initializeSheets() {
         ? teacher.breakDuration 
         : config.breakDuration;
       
+      // Parse lunch times
+      let lunchStart = null, lunchEnd = null;
+      if (config.lunchStart && config.lunchEnd) {
+        const [lsH, lsM] = config.lunchStart.split(':').map(Number);
+        const [leH, leM] = config.lunchEnd.split(':').map(Number);
+        lunchStart = lsH * 60 + lsM;
+        lunchEnd = leH * 60 + leM;
+      }
+      
       let currentTime = fromH * 60 + fromM;
       const endTime = untilH * 60 + untilM;
       let slotCount = 0;
       
       while (currentTime + config.slotDuration <= endTime) {
-        // Add break if needed (only if breakDuration > 0)
+        // Check if current time falls during lunch
+        if (lunchStart !== null && currentTime >= lunchStart && currentTime < lunchEnd) {
+          // Add lunch break marker and skip to end of lunch
+          if (slots.length === 0 || !slots[slots.length - 1].isLunch) {
+            slots.push({
+              time: config.lunchStart,
+              endTime: config.lunchEnd,
+              isBreak: true,
+              isLunch: true
+            });
+          }
+          currentTime = lunchEnd;
+          slotCount = 0; // Reset slot count after lunch
+          continue;
+        }
+        
+        // Add regular break if needed (only if breakDuration > 0)
         if (slotCount > 0 && slotsBeforeBreak > 0 && breakDuration > 0 && slotCount % slotsBeforeBreak === 0) {
-          slots.push({
-            time: formatTime(currentTime),
-            isBreak: true,
-            breakDuration: breakDuration
-          });
-          currentTime += breakDuration;
-          if (currentTime + config.slotDuration > endTime) break;
+          // Don't add break if it would overlap with lunch
+          if (lunchStart === null || currentTime + breakDuration <= lunchStart || currentTime >= lunchEnd) {
+            slots.push({
+              time: formatTime(currentTime),
+              isBreak: true,
+              breakDuration: breakDuration
+            });
+            currentTime += breakDuration;
+            if (currentTime + config.slotDuration > endTime) break;
+          }
+        }
+        
+        // Skip if slot would overlap with lunch
+        if (lunchStart !== null && currentTime < lunchEnd && currentTime + config.slotDuration > lunchStart) {
+          currentTime = lunchEnd;
+          slotCount = 0;
+          continue;
         }
         
         const timeStr = formatTime(currentTime);
@@ -1350,15 +1435,15 @@ function initializeSheets() {
         grid.innerHTML = '';
         noSlotsMsg.style.display = 'block';
         noSlotsMsg.innerHTML = isFeedbackDatePast() && config.feedbackDate
-          ? '<strong>Feedback session has ended</strong><br>The feedback date has passed.'
-          : '<strong>No feedback date set</strong><br>Please check back later when the feedback session is scheduled.';
+          ? '<strong>Feedback sessie be\u00ebindigd</strong><br>De feedback datum is voorbij.'
+          : '<strong>Geen feedback datum ingesteld</strong><br>Probeer later opnieuw wanneer de feedback sessie is gepland.';
         return;
       }
       
       if (teachers.length === 0) {
         grid.innerHTML = '';
         noSlotsMsg.style.display = 'block';
-        noSlotsMsg.innerHTML = '<strong>No teachers available yet</strong><br>Please check back later.';
+        noSlotsMsg.innerHTML = '<strong>Nog geen leerkrachten beschikbaar</strong><br>Probeer later opnieuw.';
         return;
       }
       
@@ -1385,7 +1470,7 @@ function initializeSheets() {
                 <small>${teacher.availableFrom} - ${teacher.availableUntil}</small>
               </div>
               <div class="teacher-card-body">
-                <p style="color: #666; text-align: center;">No more slots available today</p>
+                <p style="color: #666; text-align: center;">Geen momenten meer beschikbaar vandaag</p>
               </div>
             </div>
           `;
@@ -1402,8 +1487,8 @@ function initializeSheets() {
                 ${visibleSlots.map(slot => {
                   if (slot.isBreak) {
                     return `<div class="slot-item break">
-                      <span class="slot-time">${slot.time}</span>
-                      <span class="slot-status">☕ Break</span>
+                      <span class="slot-time">${slot.time}${slot.isLunch ? ' - ' + slot.endTime : ''}</span>
+                      <span class="slot-status">${slot.isLunch ? '🍽️ Middag' : '☕ Pauze'}</span>
                     </div>`;
                   }
                   
@@ -1413,10 +1498,10 @@ function initializeSheets() {
                   return `<div class="slot-item ${classes}">
                     <span class="slot-time">${slot.time}</span>
                     ${slot.isBooked 
-                      ? `<span class="slot-status">Booked: ${slot.booking.studentName}</span>`
+                      ? `<span class="slot-status">Geboekt: ${slot.booking.studentName}</span>`
                       : isFirst 
-                        ? `<button class="btn-primary book-btn" onclick="openBookingModal('${teacher.name}', '${slot.time}')">Book Now</button>`
-                        : `<span class="slot-status">Available</span>`
+                        ? `<button class="btn-primary book-btn" onclick="openBookingModal('${teacher.name}', '${slot.time}')">Nu Boeken</button>`
+                        : `<span class="slot-status">Beschikbaar</span>`
                     }
                   </div>`;
                 }).join('')}
@@ -1432,16 +1517,16 @@ function initializeSheets() {
       const tbody = document.getElementById('teacherTableBody');
       tbody.innerHTML = teachers.map(t => {
         const breakInfo = t.slotsBeforeBreak 
-          ? `${t.slotsBeforeBreak} slots, ${t.breakDuration || 0}min break`
-          : '<em>Default</em>';
+          ? `${t.slotsBeforeBreak} momenten, ${t.breakDuration || 0}min pauze`
+          : '<em>Standaard</em>';
         return `
           <tr>
             <td>${t.name}</td>
             <td>${t.availableFrom} - ${t.availableUntil}</td>
             <td>${breakInfo}</td>
             <td>
-              <button class="btn-secondary" onclick="editTeacher(${t.row}, '${t.name}', '${t.availableFrom}', '${t.availableUntil}', ${t.slotsBeforeBreak || 'null'}, ${t.breakDuration || 'null'})">Edit</button>
-              <button class="btn-danger" onclick="deleteTeacher(${t.row})">Delete</button>
+              <button class="btn-secondary" onclick="editTeacher(${t.row}, '${t.name}', '${t.availableFrom}', '${t.availableUntil}', ${t.slotsBeforeBreak || 'null'}, ${t.breakDuration || 'null'})">Bewerken</button>
+              <button class="btn-danger" onclick="deleteTeacher(${t.row})">Verwijderen</button>
             </td>
           </tr>
         `;
@@ -1460,7 +1545,7 @@ function initializeSheets() {
       
       // Change button to "Update"
       const btn = document.querySelector('.card:has(#teacherName) .btn-primary');
-      btn.textContent = 'Update Teacher';
+      btn.textContent = 'Leerkracht Bijwerken';
       btn.onclick = updateTeacher;
     }
     
@@ -1471,7 +1556,7 @@ function initializeSheets() {
       document.getElementById('teacherBreakDuration').value = '';
       
       const btn = document.querySelector('.card:has(#teacherName) .btn-primary');
-      btn.textContent = 'Add Teacher';
+      btn.textContent = 'Leerkracht Toevoegen';
       btn.onclick = addTeacher;
     }
     
@@ -1483,7 +1568,7 @@ function initializeSheets() {
       const breakDuration = document.getElementById('teacherBreakDuration').value;
       
       if (!name) {
-        alert('Please enter a teacher name');
+        alert('Vul een naam in');
         return;
       }
       
@@ -1506,7 +1591,7 @@ function initializeSheets() {
       const tbody = document.getElementById('bookingsTableBody');
       
       if (bookings.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No bookings yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5">Nog geen reservaties.</td></tr>';
         return;
       }
       
@@ -1517,7 +1602,7 @@ function initializeSheets() {
           <td>${b.studentName}</td>
           <td>${b.studentEmail}</td>
           <td>
-            <button class="btn-danger" onclick="cancelBooking(${b.row})">Cancel</button>
+            <button class="btn-danger" onclick="cancelBooking(${b.row})">Annuleren</button>
           </td>
         </tr>
       `).join('');
@@ -1532,7 +1617,7 @@ function initializeSheets() {
       const breakDuration = document.getElementById('teacherBreakDuration').value;
       
       if (!name) {
-        alert('Please enter a teacher name');
+        alert('Vul een naam in');
         return;
       }
       
@@ -1552,7 +1637,7 @@ function initializeSheets() {
     }
     
     async function deleteTeacher(row) {
-      if (!confirm('Delete this teacher?')) return;
+      if (!confirm('Deze leerkracht verwijderen?')) return;
       await apiPost({ action: 'deleteTeacher', row: row });
       loadData();
     }
@@ -1563,14 +1648,16 @@ function initializeSheets() {
         slotDuration: parseInt(document.getElementById('slotDuration').value),
         slotsBeforeBreak: parseInt(document.getElementById('slotsBeforeBreak').value),
         breakDuration: parseInt(document.getElementById('breakDuration').value),
-        feedbackDate: document.getElementById('feedbackDate').value
+        feedbackDate: document.getElementById('feedbackDate').value,
+        lunchStart: document.getElementById('lunchStart').value,
+        lunchEnd: document.getElementById('lunchEnd').value
       });
-      alert('Configuration saved!');
+      alert('Instellingen opgeslagen!');
       loadData();
     }
     
     async function cancelBooking(row) {
-      if (!confirm('Cancel this booking?')) return;
+      if (!confirm('Deze reservatie annuleren?')) return;
       await apiPost({ action: 'cancelBooking', row: row });
       loadData();
     }
@@ -1579,7 +1666,7 @@ function initializeSheets() {
     function openBookingModal(teacher, time) {
       pendingBooking = { teacher, time };
       document.getElementById('bookingInfo').textContent = 
-        `Booking slot with ${teacher} at ${time}`;
+        `Moment boeken bij ${teacher} om ${time}`;
       document.getElementById('bookingModal').classList.add('active');
     }
     
@@ -1593,7 +1680,7 @@ function initializeSheets() {
       const email = document.getElementById('studentEmail').value.trim();
       
       if (!name || !email) {
-        alert('Please fill in all fields');
+        alert('Vul alle velden in');
         return;
       }
       
@@ -1606,11 +1693,11 @@ function initializeSheets() {
       });
       
       if (result.success) {
-        alert('Booking confirmed!');
+        alert('Reservatie bevestigd!');
         closeModal();
         loadData();
       } else {
-        alert('Booking failed: ' + (result.error || 'Unknown error'));
+        alert('Reservatie mislukt: ' + (result.error || 'Onbekende fout'));
       }
     }
   </script>
