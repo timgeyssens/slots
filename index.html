@@ -972,6 +972,9 @@ function initializeSheets() {
   sheet.getRange('A1:E1').setValues([['Teacher', 'Slot Time', 'Student Name', 'Student Email', 'Timestamp']]);
 }`;
     
+    // Auto-refresh interval
+    let autoRefreshInterval = null;
+    
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       // Show current origin for OAuth setup
@@ -990,6 +993,14 @@ function initializeSheets() {
         document.getElementById('mainTabs').style.display = 'flex';
         document.getElementById('adminAccessHint').style.display = 'block';
         loadData();
+        
+        // Auto-refresh every 30 seconds to keep slots updated
+        autoRefreshInterval = setInterval(() => {
+          // Only refresh if modal is not open
+          if (!document.getElementById('bookingModal').classList.contains('active')) {
+            loadData();
+          }
+        }, 30000);
       } else {
         // No configuration - auto-open wizard
         openWizard();
@@ -1713,15 +1724,51 @@ function initializeSheets() {
     }
     
     // Student booking functions
-    function openBookingModal(teacher, time) {
-      pendingBooking = { teacher, time };
-      document.getElementById('bookingInfo').textContent = 
-        `Moment boeken bij ${teacher} om ${time}`;
-      document.getElementById('bookingModal').classList.add('active');
-      // Reset button state
+    async function openBookingModal(teacher, time) {
+      // First refresh data to check if slot is still available
       const btn = document.getElementById('confirmBookingBtn');
-      btn.disabled = false;
-      btn.textContent = 'Bevestigen';
+      document.getElementById('bookingInfo').innerHTML = '<span class="spinner"></span> Beschikbaarheid controleren...';
+      document.getElementById('bookingModal').classList.add('active');
+      btn.disabled = true;
+      
+      try {
+        // Refresh bookings to get latest state
+        const data = await apiGet('getBookings');
+        bookings = (data || []).map(b => ({
+          ...b,
+          slotTime: parseTime(b.slotTime)
+        }));
+        
+        // Check if slot is still available
+        const isBooked = bookings.some(b => b.teacher === teacher && b.slotTime === time);
+        
+        if (isBooked) {
+          document.getElementById('bookingInfo').innerHTML = 
+            '<strong style="color: #c62828;">⚠️ Dit moment is zojuist geboekt door iemand anders.</strong>';
+          btn.style.display = 'none';
+          // Refresh the main view
+          setTimeout(() => {
+            closeModal();
+            loadData();
+          }, 2000);
+          return;
+        }
+        
+        // Slot is available
+        pendingBooking = { teacher, time };
+        document.getElementById('bookingInfo').textContent = 
+          `Moment boeken bij ${teacher} om ${time}`;
+        btn.disabled = false;
+        btn.style.display = '';
+        btn.textContent = 'Bevestigen';
+      } catch (error) {
+        document.getElementById('bookingInfo').textContent = 
+          `Moment boeken bij ${teacher} om ${time}`;
+        pendingBooking = { teacher, time };
+        btn.disabled = false;
+        btn.style.display = '';
+        btn.textContent = 'Bevestigen';
+      }
     }
     
     function closeModal() {
@@ -1760,9 +1807,17 @@ function initializeSheets() {
           document.getElementById('studentEmail').value = '';
           await loadData(); // Reload to show updated bookings
         } else {
-          alert('Reservatie mislukt: ' + (result.error || 'Onbekende fout'));
-          btn.disabled = false;
-          btn.textContent = 'Bevestigen';
+          // Check if it's a duplicate booking error
+          const errorMsg = result.error || 'Onbekende fout';
+          if (errorMsg.includes('already booked') || errorMsg.includes('Slot already')) {
+            alert('Dit moment is zojuist geboekt door iemand anders. Kies een ander moment.');
+            closeModal();
+            await loadData();
+          } else {
+            alert('Reservatie mislukt: ' + errorMsg);
+            btn.disabled = false;
+            btn.textContent = 'Bevestigen';
+          }
         }
       } catch (error) {
         alert('Er ging iets mis. Probeer opnieuw.');
