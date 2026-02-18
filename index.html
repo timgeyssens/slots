@@ -564,7 +564,7 @@
       <button class="tab" onclick="showTab('admin')" id="adminTabBtn" style="display: none;">⚙️ Beheer</button>
     </div>
     
-    <!-- Admin Access (hidden by default) -->
+    <!-- Admin Access (only visible with ?admin query param) -->
     <div id="adminAccessHint" style="display: none; text-align: right; margin-bottom: 10px;">
       <small><a href="#" onclick="toggleAdminMode(); return false;" style="color: #999;">Beheerder</a></small>
     </div>
@@ -1062,10 +1062,21 @@ function initializeSheets() {
       // Set default feedback date to today
       document.getElementById('feedbackDate').value = new Date().toISOString().split('T')[0];
       
+      // Check for admin mode via query parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const isAdminUrl = urlParams.has('admin');
+      
       if (SCRIPT_URL) {
         document.getElementById('scriptUrl').value = SCRIPT_URL;
         document.getElementById('mainTabs').style.display = 'flex';
-        document.getElementById('adminAccessHint').style.display = 'block';
+        
+        // Only show admin access if ?admin is in URL
+        if (isAdminUrl) {
+          document.getElementById('adminAccessHint').style.display = 'block';
+          adminMode = true;
+          document.getElementById('adminTabBtn').style.display = 'block';
+        }
+        
         loadData();
         
         // Auto-refresh every 5 seconds to keep slots updated in near real-time
@@ -1279,16 +1290,16 @@ function initializeSheets() {
       document.getElementById('scriptUrl').value = url;
       document.getElementById('configNotice').style.display = 'none';
       document.getElementById('mainTabs').style.display = 'flex';
-      document.getElementById('adminAccessHint').style.display = 'block';
       closeWizard();
       loadData();
       
-      // Show admin mode after setup so they can configure
+      // Show admin mode after setup
       adminMode = true;
+      document.getElementById('adminAccessHint').style.display = 'block';
       document.getElementById('adminTabBtn').style.display = 'block';
       showTab('admin');
       
-      alert('🎉 Setup voltooid! Configureer je feedback datum en voeg leerkrachten toe.');
+      alert('🎉 Setup voltooid! Configureer je feedback datum en voeg leerkrachten toe.\n\nTip: Gebruik ?admin in de URL om later toegang te krijgen tot beheer.');
     }
     
     function toggleAdminMode() {
