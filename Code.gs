@@ -14,6 +14,7 @@
 const TEACHERS_SHEET = 'Teachers';
 const CONFIG_SHEET = 'Config';
 const BOOKINGS_SHEET = 'Bookings';
+const SESSIONS_SHEET = 'Sessions';
 
 /**
  * Handle GET requests - fetch data (also handles POST fallback)
@@ -38,11 +39,15 @@ function doGet(e) {
         case 'getBookings':
           result = getBookings();
           break;
+        case 'getSessions':
+          result = getSessions();
+          break;
         case 'getAll':
           result = {
             teachers: getTeachers(),
             config: getConfig(),
-            bookings: getBookings()
+            bookings: getBookings(),
+            sessions: getSessions()
           };
           break;
         default:
@@ -76,6 +81,12 @@ function handlePostAction(data) {
       return bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail);
     case 'cancelBooking':
       return cancelBooking(data.row);
+    case 'addSession':
+      return addSession(data.name, data.date, data.sheetUrl);
+    case 'updateSession':
+      return updateSession(data.row, data.name, data.date, data.sheetUrl);
+    case 'deleteSession':
+      return deleteSession(data.row);
     default:
       return { error: 'Unknown action' };
   }
@@ -237,13 +248,79 @@ function cancelBooking(row) {
 }
 
 /**
+ * Get all sessions
+ */
+function getSessions() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SESSIONS_SHEET);
+  if (!sheet) {
+    return [];
+  }
+  const data = sheet.getDataRange().getValues();
+  const sessions = [];
+  
+  // Skip header row
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) {
+      sessions.push({
+        row: i + 1,
+        name: data[i][0],
+        date: data[i][1],
+        sheetUrl: data[i][2] || ''
+      });
+    }
+  }
+  
+  return sessions;
+}
+
+/**
+ * Add a new session
+ */
+function addSession(name, date, sheetUrl) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SESSIONS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SESSIONS_SHEET);
+    sheet.getRange('A1:C1').setValues([['Session Name', 'Date', 'Sheet URL']]);
+  }
+  sheet.appendRow([name, date, sheetUrl || '']);
+  return { success: true };
+}
+
+/**
+ * Update a session
+ */
+function updateSession(row, name, date, sheetUrl) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SESSIONS_SHEET);
+  sheet.getRange(row, 1, 1, 3).setValues([[name, date, sheetUrl || '']]);
+  return { success: true };
+}
+
+/**
+ * Delete a session
+ */
+function deleteSession(row) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SESSIONS_SHEET);
+  sheet.deleteRow(row);
+  return { success: true };
+}
+
+/**
  * Initialize sheets with headers (run once manually)
  */
 function initializeSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
+  // Sessions sheet (new)
+  let sheet = ss.getSheetByName(SESSIONS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SESSIONS_SHEET);
+  }
+  sheet.getRange('A1:C1').setValues([['Session Name', 'Date', 'Sheet URL']]);
+  
   // Teachers sheet
-  let sheet = ss.getSheetByName(TEACHERS_SHEET);
+  sheet = ss.getSheetByName(TEACHERS_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(TEACHERS_SHEET);
   }

@@ -572,7 +572,10 @@
     <!-- Student Panel -->
     <div class="panel active" id="studentPanel">
       <h2>Beschikbare Feedback Momenten</h2>
-      <p id="feedbackDateDisplay"></p>
+      <div id="activeSessionInfo" style="background: #e8f5e9; padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; display: none;">
+        <strong id="studentSessionName"></strong>
+        <span id="feedbackDateDisplay" style="margin-left: 10px;"></span>
+      </div>
       <p>Kies een leerkracht en boek je feedback moment. Je kan enkel het eerste beschikbare moment boeken bij elke leerkracht.</p>
       
       <div id="studentLoading" class="loading">Momenten laden...</div>
@@ -586,6 +589,46 @@
     <!-- Admin Panel -->
     <div class="panel" id="adminPanel">
       <h2>Beheer</h2>
+      
+      <!-- Sessions Section -->
+      <div class="card">
+        <h3>📆 Feedback Sessies</h3>
+        <p style="color: #666; margin-bottom: 15px;">Beheer meerdere feedback momenten. Elke sessie kan een eigen Google Sheet hebben.</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sessie Naam</label>
+            <input type="text" id="sessionName" placeholder="bv. Oudercontact Februari">
+          </div>
+          <div class="form-group">
+            <label>Datum</label>
+            <input type="date" id="sessionDate">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Google Sheet URL <small>(leeg = huidige sheet gebruiken)</small></label>
+          <input type="text" id="sessionSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit">
+        </div>
+        <button class="btn-primary" onclick="addSession()">Sessie Toevoegen</button>
+        
+        <table id="sessionsTable" style="margin-top: 15px;">
+          <thead>
+            <tr>
+              <th>Naam</th>
+              <th>Datum</th>
+              <th>Status</th>
+              <th>Acties</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsTableBody">
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Active Session Indicator -->
+      <div class="card" id="activeSessionCard" style="background: #e3f2fd; display: none;">
+        <h3>📝 Actieve Sessie: <span id="activeSessionName">-</span></h3>
+        <p>De instellingen hieronder gelden voor de geselecteerde sessie.</p>
+      </div>
       
       <!-- Config Section -->
       <div class="card">
@@ -853,6 +896,8 @@
     let teachers = [];
     let config = { slotDuration: 15, slotsBeforeBreak: 4, breakDuration: 15, feedbackDate: '', lunchStart: '', lunchEnd: '' };
     let bookings = [];
+    let sessions = [];
+    let activeSession = null; // The session currently being viewed/edited
     let pendingBooking = null;
     let adminMode = false;
     
@@ -864,6 +909,7 @@
 const TEACHERS_SHEET = 'Teachers';
 const CONFIG_SHEET = 'Config';
 const BOOKINGS_SHEET = 'Bookings';
+const SESSIONS_SHEET = 'Sessions';
 
 function doGet(e) {
   const action = e.parameter.action;
@@ -877,7 +923,8 @@ function doGet(e) {
         case 'getTeachers': result = getTeachers(); break;
         case 'getConfig': result = getConfig(); break;
         case 'getBookings': result = getBookings(); break;
-        case 'getAll': result = { teachers: getTeachers(), config: getConfig(), bookings: getBookings() }; break;
+        case 'getSessions': result = getSessions(); break;
+        case 'getAll': result = { teachers: getTeachers(), config: getConfig(), bookings: getBookings(), sessions: getSessions() }; break;
         default: result = { error: 'Unknown action' };
       }
     }
@@ -893,6 +940,8 @@ function handlePostAction(data) {
     case 'updateConfig': return updateConfig(data.slotDuration, data.slotsBeforeBreak, data.breakDuration, data.feedbackDate, data.lunchStart, data.lunchEnd);
     case 'bookSlot': return bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail);
     case 'cancelBooking': return cancelBooking(data.row);
+    case 'addSession': return addSession(data.name, data.date, data.sheetUrl);
+    case 'deleteSession': return deleteSession(data.row);
     default: return { error: 'Unknown action' };
   }
 }
@@ -962,9 +1011,36 @@ function cancelBooking(row) {
   return { success: true };
 }
 
+function getSessions() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SESSIONS_SHEET);
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const sessions = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) sessions.push({ row: i + 1, name: data[i][0], date: data[i][1], sheetUrl: data[i][2] || '' });
+  }
+  return sessions;
+}
+
+function addSession(name, date, sheetUrl) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SESSIONS_SHEET);
+  if (!sheet) { sheet = ss.insertSheet(SESSIONS_SHEET); sheet.getRange('A1:C1').setValues([['Session Name', 'Date', 'Sheet URL']]); }
+  sheet.appendRow([name, date, sheetUrl || '']);
+  return { success: true };
+}
+
+function deleteSession(row) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SESSIONS_SHEET).deleteRow(row);
+  return { success: true };
+}
+
 function initializeSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(TEACHERS_SHEET) || ss.insertSheet(TEACHERS_SHEET);
+  let sheet = ss.getSheetByName(SESSIONS_SHEET) || ss.insertSheet(SESSIONS_SHEET);
+  sheet.getRange('A1:C1').setValues([['Session Name', 'Date', 'Sheet URL']]);
+  sheet = ss.getSheetByName(TEACHERS_SHEET) || ss.insertSheet(TEACHERS_SHEET);
   sheet.getRange('A1:E1').setValues([['Teacher Name', 'Available From', 'Available Until', 'Slots Before Break', 'Break Duration']]);
   sheet = ss.getSheetByName(CONFIG_SHEET) || ss.insertSheet(CONFIG_SHEET);
   sheet.getRange('A1:B6').setValues([['Slot Duration (min)', 15], ['Slots Before Break', 4], ['Break Duration (min)', 15], ['Feedback Date', ''], ['Lunch Start', '12:00'], ['Lunch End', '13:00']]);
@@ -1293,6 +1369,18 @@ function initializeSheets() {
           slotTime: parseTime(b.slotTime)
         }));
         
+        // Parse sessions
+        sessions = (data.sessions || []).map(s => ({
+          ...s,
+          date: parseDate(s.date)
+        }));
+        
+        // Find the active session (first upcoming or in-progress)
+        findActiveSession();
+        
+        // Update sessions table in admin
+        renderSessionsTable();
+        
         // Update config form with parsed values
         document.getElementById('slotDuration').value = config.slotDuration || 15;
         document.getElementById('slotsBeforeBreak').value = config.slotsBeforeBreak || 4;
@@ -1318,12 +1406,27 @@ function initializeSheets() {
     
     function updateFeedbackDateDisplay() {
       const dateDisplay = document.getElementById('feedbackDateDisplay');
-      if (config.feedbackDate) {
+      const sessionInfo = document.getElementById('activeSessionInfo');
+      const sessionNameEl = document.getElementById('studentSessionName');
+      
+      if (activeSession) {
+        sessionInfo.style.display = 'block';
+        sessionNameEl.textContent = activeSession.name;
+        const date = new Date(activeSession.date + 'T00:00:00');
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateDisplay.innerHTML = `📅 ${date.toLocaleDateString('nl-BE', options)}`;
+        
+        // Use session date as the feedback date for slot calculations
+        config.feedbackDate = activeSession.date;
+      } else if (config.feedbackDate) {
+        sessionInfo.style.display = 'block';
+        sessionNameEl.textContent = 'Feedback';
         const date = new Date(config.feedbackDate + 'T00:00:00');
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        dateDisplay.innerHTML = `<strong>📅 Feedback Datum:</strong> ${date.toLocaleDateString('nl-BE', options)}`;
+        dateDisplay.innerHTML = `📅 ${date.toLocaleDateString('nl-BE', options)}`;
       } else {
-        dateDisplay.innerHTML = '<em>Nog geen feedback datum ingesteld.</em>';
+        sessionInfo.style.display = 'none';
+        dateDisplay.innerHTML = '';
       }
     }
     
@@ -1729,6 +1832,125 @@ function initializeSheets() {
       });
       alert('Instellingen opgeslagen!');
       loadData();
+    }
+    
+    // Session management functions
+    function findActiveSession() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Sort sessions by date
+      const sortedSessions = [...sessions].sort((a, b) => {
+        const dateA = new Date(a.date + 'T00:00:00');
+        const dateB = new Date(b.date + 'T00:00:00');
+        return dateA - dateB;
+      });
+      
+      // Find first session that is today or in the future
+      activeSession = sortedSessions.find(s => {
+        const sessionDate = new Date(s.date + 'T23:59:59');
+        return sessionDate >= today;
+      });
+      
+      // If no future session, use the most recent past one (for admin)
+      if (!activeSession && sortedSessions.length > 0) {
+        activeSession = sortedSessions[sortedSessions.length - 1];
+      }
+      
+      // Update UI
+      if (activeSession) {
+        document.getElementById('activeSessionCard').style.display = 'block';
+        document.getElementById('activeSessionName').textContent = `${activeSession.name} (${activeSession.date})`;
+      } else {
+        document.getElementById('activeSessionCard').style.display = 'none';
+      }
+    }
+    
+    function renderSessionsTable() {
+      const tbody = document.getElementById('sessionsTableBody');
+      if (!tbody) return;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (sessions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">Nog geen sessies. Voeg een sessie toe om te beginnen.</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = sessions.map(s => {
+        const sessionDate = new Date(s.date + 'T00:00:00');
+        const endOfDay = new Date(s.date + 'T23:59:59');
+        let status = '';
+        let statusClass = '';
+        
+        if (endOfDay < today) {
+          status = 'Afgelopen';
+          statusClass = 'color: #999;';
+        } else if (sessionDate <= today && endOfDay >= today) {
+          status = '🟢 Vandaag';
+          statusClass = 'color: #2e7d32; font-weight: bold;';
+        } else {
+          status = 'Gepland';
+          statusClass = 'color: #1976d2;';
+        }
+        
+        const isActive = activeSession && activeSession.row === s.row;
+        
+        return `
+          <tr style="${isActive ? 'background: #e3f2fd;' : ''}">
+            <td>${s.name}</td>
+            <td>${s.date}</td>
+            <td style="${statusClass}">${status}</td>
+            <td>
+              <button class="btn-secondary" onclick="selectSession(${s.row})">Selecteren</button>
+              <button class="btn-danger" onclick="deleteSession(${s.row})">Verwijderen</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    async function addSession() {
+      const name = document.getElementById('sessionName').value.trim();
+      const date = document.getElementById('sessionDate').value;
+      const sheetUrl = document.getElementById('sessionSheetUrl').value.trim();
+      
+      if (!name || !date) {
+        alert('Vul een naam en datum in');
+        return;
+      }
+      
+      await apiPost({
+        action: 'addSession',
+        name: name,
+        date: date,
+        sheetUrl: sheetUrl
+      });
+      
+      document.getElementById('sessionName').value = '';
+      document.getElementById('sessionDate').value = '';
+      document.getElementById('sessionSheetUrl').value = '';
+      loadData();
+    }
+    
+    async function deleteSession(row) {
+      if (!confirm('Deze sessie verwijderen?')) return;
+      await apiPost({ action: 'deleteSession', row: row });
+      loadData();
+    }
+    
+    function selectSession(row) {
+      activeSession = sessions.find(s => s.row === row);
+      renderSessionsTable();
+      
+      if (activeSession) {
+        document.getElementById('activeSessionCard').style.display = 'block';
+        document.getElementById('activeSessionName').textContent = `${activeSession.name} (${activeSession.date})`;
+        
+        // Update the config feedback date to match the session
+        document.getElementById('feedbackDate').value = activeSession.date;
+      }
     }
     
     async function cancelBooking(row) {
