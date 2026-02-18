@@ -994,13 +994,27 @@ function initializeSheets() {
         document.getElementById('adminAccessHint').style.display = 'block';
         loadData();
         
-        // Auto-refresh every 30 seconds to keep slots updated
+        // Auto-refresh every 5 seconds to keep slots updated in near real-time
         autoRefreshInterval = setInterval(() => {
-          // Only refresh if modal is not open
+          // Only refresh if modal is not open and page is visible
+          if (!document.getElementById('bookingModal').classList.contains('active') && !document.hidden) {
+            loadData();
+          }
+        }, 5000);
+        
+        // Also refresh when user returns to the tab
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && !document.getElementById('bookingModal').classList.contains('active')) {
+            loadData();
+          }
+        });
+        
+        // Refresh when window regains focus
+        window.addEventListener('focus', () => {
           if (!document.getElementById('bookingModal').classList.contains('active')) {
             loadData();
           }
-        }, 30000);
+        });
       } else {
         // No configuration - auto-open wizard
         openWizard();
