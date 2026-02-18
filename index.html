@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback Slot Booking</title>
+  <script src="https://accounts.google.com/gsi/client"></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      background: #ddd;
+      border: none;
+      border-radius: 5px 5px 0 0;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .tab.active {
+      background: #fff;
+      font-weight: bold;
+    }
+    
+    .panel {
+      display: none;
+      background: #fff;
+      padding: 20px;
+      border-radius: 0 5px 5px 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .panel.active {
+      display: block;
+    }
+    
+    .card {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      border: 1px solid #eee;
+    }
+    
+    .card h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #555;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .form-row .form-group {
+      flex: 1;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    .btn-primary {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #45a049;
+    }
+    
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #da190b;
+    }
+    
+    .btn-secondary {
+      background: #2196F3;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #1976D2;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+    
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    
+    .teacher-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .teacher-card-header {
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+    }
+    
+    .teacher-card-header h3 {
+      margin: 0;
+      color: white;
+    }
+    
+    .teacher-card-header small {
+      opacity: 0.9;
+    }
+    
+    .teacher-card-body {
+      padding: 15px;
+    }
+    
+    .slot-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .slot-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .slot-item:last-child {
+      border-bottom: none;
+    }
+    
+    .slot-item.booked {
+      background: #ffebee;
+      color: #c62828;
+    }
+    
+    .slot-item.break {
+      background: #fff3e0;
+      color: #e65100;
+      font-style: italic;
+    }
+    
+    .slot-item.available {
+      background: #e8f5e9;
+    }
+    
+    .slot-item.first-available {
+      background: #c8e6c9;
+      border: 2px solid #4CAF50;
+    }
+    
+    .slot-time {
+      font-weight: 500;
+    }
+    
+    .slot-status {
+      font-size: 12px;
+    }
+    
+    .book-btn {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    
+    .success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      margin: 20px;
+    }
+    
+    .modal-content h2 {
+      margin-top: 0;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    
+    .config-notice {
+      background: #fff3e0;
+      border: 1px solid #ffcc80;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    
+    .config-notice code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    
+    /* Wizard Styles */
+    .wizard-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    
+    .wizard-overlay.active {
+      display: flex;
+    }
+    
+    .wizard-container {
+      background: white;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      margin: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .wizard-header {
+      background: linear-gradient(135deg, #4CAF50, #2196F3);
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+    
+    .wizard-header h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+    
+    .wizard-header p {
+      margin: 10px 0 0 0;
+      opacity: 0.9;
+    }
+    
+    .wizard-body {
+      padding: 25px;
+    }
+    
+    .wizard-step {
+      display: none;
+    }
+    
+    .wizard-step.active {
+      display: block;
+    }
+    
+    .step-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+    
+    .step-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ddd;
+    }
+    
+    .step-dot.active {
+      background: #4CAF50;
+    }
+    
+    .step-dot.completed {
+      background: #2196F3;
+    }
+    
+    .wizard-step h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .step-content {
+      margin-bottom: 20px;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    .info-box.warning {
+      background: #fff3e0;
+      border-color: #ffcc80;
+    }
+    
+    .info-box ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .info-box li {
+      margin: 8px 0;
+    }
+    
+    .google-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: white;
+      border: 2px solid #ddd;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin: 15px 0;
+    }
+    
+    .google-btn:hover {
+      border-color: #4285f4;
+      background: #f8f9fa;
+    }
+    
+    .google-btn img {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .wizard-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    
+    .btn-skip {
+      background: #f5f5f5;
+      color: #666;
+    }
+    
+    .btn-skip:hover {
+      background: #eee;
+    }
+    
+    .code-block {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 15px 0;
+      position: relative;
+    }
+    
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #455a64;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    
+    .copy-btn:hover {
+      background: #546e7a;
+    }
+    
+    .status-icon {
+      font-size: 48px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .status-message {
+      text-align: center;
+      font-size: 18px;
+      color: #333;
+    }
+    
+    .sheet-link {
+      display: block;
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 15px 0;
+      text-decoration: none;
+      color: #2e7d32;
+      font-weight: 500;
+    }
+    
+    .sheet-link:hover {
+      background: #c8e6c9;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎓 Feedback Slot Booking</h1>
+    
+    <div class="config-notice" id="configNotice" style="display: none;">
+      <strong>Setup Required:</strong> Connect to Google Sheets to get started.
+      <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-primary" onclick="openWizard()">🚀 Setup Wizard</button>
+        <button class="btn-secondary" onclick="showManualSetup()">Manual Setup</button>
+      </div>
+      <div id="manualSetup" style="display: none; margin-top: 15px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Google Apps Script URL:</label>
+          <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/xxx/exec">
+          <button class="btn-primary" style="margin-top: 10px;" onclick="saveScriptUrl()">Save URL</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tabs" id="mainTabs" style="display: none;">
+      <button class="tab active" onclick="showTab('student')">📅 Book a Slot</button>
+      <button class="tab" onclick="showTab('admin')" id="adminTabBtn" style="display: none;">⚙️ Admin</button>
+    </div>
+    
+    <!-- Admin Access (hidden by default) -->
+    <div id="adminAccessHint" style="display: none; text-align: right; margin-bottom: 10px;">
+      <small><a href="#" onclick="toggleAdminMode(); return false;" style="color: #999;">Admin Access</a></small>
+    </div>
+    
+    <!-- Student Panel -->
+    <div class="panel active" id="studentPanel">
+      <h2>Available Feedback Slots</h2>
+      <p id="feedbackDateDisplay"></p>
+      <p>Select a teacher and book your feedback slot. You can only book the first available slot for each teacher.</p>
+      
+      <div id="studentLoading" class="loading">Loading slots...</div>
+      <div id="noFutureSlots" class="info-box" style="display: none;">
+        <strong>No slots available</strong><br>
+        There are no future feedback slots available at this time. Please check back later.
+      </div>
+      <div id="slotGrid" class="slot-grid"></div>
+    </div>
+    
+    <!-- Admin Panel -->
+    <div class="panel" id="adminPanel">
+      <h2>Administration</h2>
+      
+      <!-- Config Section -->
+      <div class="card">
+        <h3>⏱️ Slot Configuration</h3>
+        <div class="form-group">
+          <label>Feedback Date</label>
+          <input type="date" id="feedbackDate">
+          <small style="color: #666;">The date when feedback sessions will take place</small>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Slot Duration (minutes)</label>
+            <input type="number" id="slotDuration" min="5" value="15">
+          </div>
+          <div class="form-group">
+            <label>Slots Before Break</label>
+            <input type="number" id="slotsBeforeBreak" min="1" value="4">
+          </div>
+          <div class="form-group">
+            <label>Break Duration (minutes)</label>
+            <input type="number" id="breakDuration" min="5" value="15">
+          </div>
+        </div>
+        <button class="btn-primary" onclick="saveConfig()">Save Configuration</button>
+      </div>
+      
+      <!-- Teachers Section -->
+      <div class="card">
+        <h3>👨‍🏫 Teachers</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Teacher Name</label>
+            <input type="text" id="teacherName" placeholder="Mr. Smith">
+          </div>
+          <div class="form-group">
+            <label>Available From</label>
+            <input type="time" id="teacherFrom" value="09:00">
+          </div>
+          <div class="form-group">
+            <label>Available Until</label>
+            <input type="time" id="teacherUntil" value="16:00">
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addTeacher()">Add Teacher</button>
+        
+        <table id="teacherTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Available From</th>
+              <th>Available Until</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="teacherTableBody">
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Bookings Section -->
+      <div class="card">
+        <h3>📋 Bookings</h3>
+        <button class="btn-secondary" onclick="loadData()" style="margin-bottom: 15px;">Refresh Bookings</button>
+        <table id="bookingsTable">
+          <thead>
+            <tr>
+              <th>Teacher</th>
+              <th>Time</th>
+              <th>Student</th>
+              <th>Email</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Setup Wizard -->
+  <div class="wizard-overlay" id="wizardOverlay">
+    <div class="wizard-container">
+      <div class="wizard-header">
+        <h2>🎓 Slot Booking Setup</h2>
+        <p>Let's connect to Google Sheets in a few easy steps</p>
+      </div>
+      <div class="wizard-body">
+        <div class="step-indicator">
+          <div class="step-dot active" id="dot1"></div>
+          <div class="step-dot" id="dot2"></div>
+          <div class="step-dot" id="dot3"></div>
+          <div class="step-dot" id="dot4"></div>
+        </div>
+        
+        <!-- Step 1: Google Cloud Setup -->
+        <div class="wizard-step active" id="step1">
+          <h3>Step 1: Google Cloud Setup (One-time)</h3>
+          <div class="step-content">
+            <p>To connect with Google Sheets, you need a Google Cloud project. This is free and only takes a few minutes.</p>
+            
+            <div class="info-box">
+              <strong>Quick Setup:</strong>
+              <ol>
+                <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></li>
+                <li>Create a new project (or select existing)</li>
+                <li>Click "+ CREATE CREDENTIALS" → "OAuth client ID"</li>
+                <li>If prompted, configure OAuth consent screen (External, add your email as test user)</li>
+                <li>Application type: "Web application"</li>
+                <li>Add Authorized JavaScript origin: <code id="currentOrigin">http://localhost</code></li>
+                <li>Click "Create" and copy your <strong>Client ID</strong></li>
+              </ol>
+            </div>
+            
+            <div class="info-box warning">
+              <strong>Also enable the Sheets API:</strong>
+              <ol>
+                <li>Go to <a href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank">Sheets API</a></li>
+                <li>Click "Enable"</li>
+              </ol>
+            </div>
+            
+            <div class="form-group">
+              <label>Your Google Client ID:</label>
+              <input type="text" id="googleClientId" placeholder="xxx.apps.googleusercontent.com">
+            </div>
+          </div>
+          <div class="wizard-actions">
+            <button class="btn-skip" onclick="closeWizard()">Cancel</button>
+            <button class="btn-primary" onclick="saveClientIdAndNext()">Continue →</button>
+          </div>
+        </div>
+        
+        <!-- Step 2: Sign In -->
+        <div class="wizard-step" id="step2">
+          <h3>Step 2: Sign in with Google</h3>
+          <div class="step-content">
+            <p>Sign in to allow the app to create a Google Sheet for you.</p>
+            
+            <button class="google-btn" onclick="signInWithGoogle()" id="googleSignInBtn">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+              Sign in with Google
+            </button>
+            
+            <div id="signInStatus" style="text-align: center; margin-top: 15px;"></div>
+          </div>
+          <div class="wizard-actions">
+            <button class="btn-skip" onclick="goToStep(1)">← Back</button>
+            <button class="btn-primary" onclick="goToStep(3)" id="step2NextBtn" disabled>Continue →</button>
+          </div>
+        </div>
+        
+        <!-- Step 3: Create Sheet -->
+        <div class="wizard-step" id="step3">
+          <h3>Step 3: Create Google Sheet</h3>
+          <div class="step-content">
+            <p>Click the button below to create a new Google Sheet with the correct structure.</p>
+            
+            <button class="btn-primary" style="width: 100%; padding: 15px;" onclick="createGoogleSheet()" id="createSheetBtn">
+              📊 Create Feedback Slots Sheet
+            </button>
+            
+            <div id="createSheetStatus" style="margin-top: 15px;"></div>
+          </div>
+          <div class="wizard-actions">
+            <button class="btn-skip" onclick="goToStep(2)">← Back</button>
+            <button class="btn-primary" onclick="goToStep(4)" id="step3NextBtn" disabled>Continue →</button>
+          </div>
+        </div>
+        
+        <!-- Step 4: Add Apps Script -->
+        <div class="wizard-step" id="step4">
+          <h3>Step 4: Add the Backend Script</h3>
+          <div class="step-content">
+            <p>Open your new sheet and add the Apps Script backend:</p>
+            
+            <a class="sheet-link" id="sheetLink" href="#" target="_blank">
+              📄 Open Your Google Sheet
+            </a>
+            
+            <div class="info-box">
+              <strong>In your Google Sheet:</strong>
+              <ol>
+                <li>Go to <strong>Extensions → Apps Script</strong></li>
+                <li>Delete any existing code</li>
+                <li>Paste the code below and save</li>
+                <li>Click <strong>Run → initializeSheets</strong> (grant permissions)</li>
+                <li>Click <strong>Deploy → New deployment</strong></li>
+                <li>Type: Web app, Execute as: Me, Access: Anyone</li>
+                <li>Copy the deployment URL and paste below</li>
+              </ol>
+            </div>
+            
+            <div class="code-block" id="appsScriptCode">
+              <button class="copy-btn" onclick="copyAppsScript()">Copy Code</button>
+              <pre style="margin: 0; white-space: pre-wrap;">// Click "Copy Code" above to copy the full Apps Script</pre>
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px;">
+              <label>Paste your deployed Apps Script URL:</label>
+              <input type="text" id="wizardScriptUrl" placeholder="https://script.google.com/macros/s/xxx/exec">
+            </div>
+          </div>
+          <div class="wizard-actions">
+            <button class="btn-skip" onclick="goToStep(3)">← Back</button>
+            <button class="btn-primary" onclick="finishWizard()">✓ Finish Setup</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Booking Modal -->
+  <div class="modal" id="bookingModal">
+    <div class="modal-content">
+      <h2>Book Feedback Slot</h2>
+      <p id="bookingInfo"></p>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="studentName" placeholder="John Doe">
+      </div>
+      <div class="form-group">
+        <label>Your Email</label>
+        <input type="email" id="studentEmail" placeholder="john@school.edu">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" onclick="confirmBooking()">Confirm Booking</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Configuration
+    let SCRIPT_URL = localStorage.getItem('slotBookingScriptUrl') || '';
+    let GOOGLE_CLIENT_ID = localStorage.getItem('slotBookingClientId') || '';
+    let accessToken = null;
+    let createdSheetId = null;
+    let createdSheetUrl = null;
+    
+    // State
+    let teachers = [];
+    let config = { slotDuration: 15, slotsBeforeBreak: 4, breakDuration: 15, feedbackDate: '' };
+    let bookings = [];
+    let pendingBooking = null;
+    let adminMode = false;
+    
+    // Apps Script code to copy
+    const APPS_SCRIPT_CODE = `/**
+ * School Slot Booking System - Google Apps Script Backend
+ */
+
+const TEACHERS_SHEET = 'Teachers';
+const CONFIG_SHEET = 'Config';
+const BOOKINGS_SHEET = 'Bookings';
+
+function doGet(e) {
+  const action = e.parameter.action;
+  let result;
+  try {
+    switch(action) {
+      case 'getTeachers': result = getTeachers(); break;
+      case 'getConfig': result = getConfig(); break;
+      case 'getBookings': result = getBookings(); break;
+      case 'getAll': result = { teachers: getTeachers(), config: getConfig(), bookings: getBookings() }; break;
+      default: result = { error: 'Unknown action' };
+    }
+  } catch (error) { result = { error: error.toString() }; }
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const action = data.action;
+  let result;
+  try {
+    switch(action) {
+      case 'addTeacher': result = addTeacher(data.name, data.availableFrom, data.availableUntil); break;
+      case 'updateTeacher': result = updateTeacher(data.row, data.name, data.availableFrom, data.availableUntil); break;
+      case 'deleteTeacher': result = deleteTeacher(data.row); break;
+      case 'updateConfig': result = updateConfig(data.slotDuration, data.slotsBeforeBreak, data.breakDuration, data.feedbackDate); break;
+      case 'bookSlot': result = bookSlot(data.teacher, data.slotTime, data.studentName, data.studentEmail); break;
+      case 'cancelBooking': result = cancelBooking(data.row); break;
+      default: result = { error: 'Unknown action' };
+    }
+  } catch (error) { result = { error: error.toString() }; }
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getTeachers() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET);
+  const data = sheet.getDataRange().getValues();
+  const teachers = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) teachers.push({ row: i + 1, name: data[i][0], availableFrom: data[i][1], availableUntil: data[i][2] });
+  }
+  return teachers;
+}
+
+function addTeacher(name, availableFrom, availableUntil) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET).appendRow([name, availableFrom, availableUntil]);
+  return { success: true };
+}
+
+function updateTeacher(row, name, availableFrom, availableUntil) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET).getRange(row, 1, 1, 3).setValues([[name, availableFrom, availableUntil]]);
+  return { success: true };
+}
+
+function deleteTeacher(row) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TEACHERS_SHEET).deleteRow(row);
+  return { success: true };
+}
+
+function getConfig() {
+  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET).getDataRange().getValues();
+  return { slotDuration: data[0] ? data[0][1] || 15 : 15, slotsBeforeBreak: data[1] ? data[1][1] || 4 : 4, breakDuration: data[2] ? data[2][1] || 15 : 15, feedbackDate: data[3] ? data[3][1] || '' : '' };
+}
+
+function updateConfig(slotDuration, slotsBeforeBreak, breakDuration, feedbackDate) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET).getRange('A1:B4').setValues([['Slot Duration (min)', slotDuration], ['Slots Before Break', slotsBeforeBreak], ['Break Duration (min)', breakDuration], ['Feedback Date', feedbackDate || '']]);
+  return { success: true };
+}
+
+function getBookings() {
+  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BOOKINGS_SHEET).getDataRange().getValues();
+  const bookings = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) bookings.push({ row: i + 1, teacher: data[i][0], slotTime: data[i][1], studentName: data[i][2], studentEmail: data[i][3], timestamp: data[i][4] });
+  }
+  return bookings;
+}
+
+function bookSlot(teacher, slotTime, studentName, studentEmail) {
+  const bookings = getBookings();
+  if (bookings.find(b => b.teacher === teacher && b.slotTime === slotTime)) return { success: false, error: 'Slot already booked' };
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BOOKINGS_SHEET).appendRow([teacher, slotTime, studentName, studentEmail, new Date().toISOString()]);
+  return { success: true };
+}
+
+function cancelBooking(row) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BOOKINGS_SHEET).deleteRow(row);
+  return { success: true };
+}
+
+function initializeSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(TEACHERS_SHEET) || ss.insertSheet(TEACHERS_SHEET);
+  sheet.getRange('A1:C1').setValues([['Teacher Name', 'Available From', 'Available Until']]);
+  sheet = ss.getSheetByName(CONFIG_SHEET) || ss.insertSheet(CONFIG_SHEET);
+  sheet.getRange('A1:B4').setValues([['Slot Duration (min)', 15], ['Slots Before Break', 4], ['Break Duration (min)', 15], ['Feedback Date', '']]);
+  sheet = ss.getSheetByName(BOOKINGS_SHEET) || ss.insertSheet(BOOKINGS_SHEET);
+  sheet.getRange('A1:E1').setValues([['Teacher', 'Slot Time', 'Student Name', 'Student Email', 'Timestamp']]);
+}`;
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Show current origin for OAuth setup
+      document.getElementById('currentOrigin').textContent = window.location.origin || 'file:// (use a local server)';
+      
+      // Load saved client ID
+      if (GOOGLE_CLIENT_ID) {
+        document.getElementById('googleClientId').value = GOOGLE_CLIENT_ID;
+      }
+      
+      // Set default feedback date to today
+      document.getElementById('feedbackDate').value = new Date().toISOString().split('T')[0];
+      
+      if (SCRIPT_URL) {
+        document.getElementById('scriptUrl').value = SCRIPT_URL;
+        document.getElementById('mainTabs').style.display = 'flex';
+        document.getElementById('adminAccessHint').style.display = 'block';
+        loadData();
+      } else {
+        // No configuration - auto-open wizard
+        openWizard();
+      }
+    });
+    
+    // Wizard functions
+    function openWizard() {
+      document.getElementById('wizardOverlay').classList.add('active');
+      goToStep(1);
+    }
+    
+    function closeWizard() {
+      document.getElementById('wizardOverlay').classList.remove('active');
+    }
+    
+    function showManualSetup() {
+      const el = document.getElementById('manualSetup');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    function goToStep(step) {
+      // Update dots
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById('dot' + i);
+        dot.classList.remove('active', 'completed');
+        if (i < step) dot.classList.add('completed');
+        if (i === step) dot.classList.add('active');
+      }
+      
+      // Show step
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('step' + i).classList.remove('active');
+      }
+      document.getElementById('step' + step).classList.add('active');
+    }
+    
+    function saveClientIdAndNext() {
+      const clientId = document.getElementById('googleClientId').value.trim();
+      if (!clientId || !clientId.includes('.apps.googleusercontent.com')) {
+        alert('Please enter a valid Google Client ID');
+        return;
+      }
+      GOOGLE_CLIENT_ID = clientId;
+      localStorage.setItem('slotBookingClientId', clientId);
+      initGoogleClient();
+      goToStep(2);
+    }
+    
+    function initGoogleClient() {
+      // Initialize the token client
+      window.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        callback: (response) => {
+          if (response.access_token) {
+            accessToken = response.access_token;
+            document.getElementById('signInStatus').innerHTML = 
+              '<span style="color: #4CAF50;">✓ Signed in successfully!</span>';
+            document.getElementById('step2NextBtn').disabled = false;
+            document.getElementById('googleSignInBtn').textContent = '✓ Signed In';
+            document.getElementById('googleSignInBtn').disabled = true;
+          }
+        },
+      });
+    }
+    
+    function signInWithGoogle() {
+      if (!window.tokenClient) {
+        initGoogleClient();
+      }
+      window.tokenClient.requestAccessToken();
+    }
+    
+    async function createGoogleSheet() {
+      const btn = document.getElementById('createSheetBtn');
+      const status = document.getElementById('createSheetStatus');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Creating...';
+      status.innerHTML = '';
+      
+      try {
+        // Create the spreadsheet
+        const createResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + accessToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            properties: {
+              title: 'Feedback Slots - ' + new Date().toLocaleDateString()
+            },
+            sheets: [
+              {
+                properties: { title: 'Teachers' },
+                data: [{
+                  startRow: 0,
+                  startColumn: 0,
+                  rowData: [{
+                    values: [
+                      { userEnteredValue: { stringValue: 'Teacher Name' } },
+                      { userEnteredValue: { stringValue: 'Available From' } },
+                      { userEnteredValue: { stringValue: 'Available Until' } }
+                    ]
+                  }]
+                }]
+              },
+              {
+                properties: { title: 'Config' },
+                data: [{
+                  startRow: 0,
+                  startColumn: 0,
+                  rowData: [
+                    { values: [{ userEnteredValue: { stringValue: 'Slot Duration (min)' } }, { userEnteredValue: { numberValue: 15 } }] },
+                    { values: [{ userEnteredValue: { stringValue: 'Slots Before Break' } }, { userEnteredValue: { numberValue: 4 } }] },
+                    { values: [{ userEnteredValue: { stringValue: 'Break Duration (min)' } }, { userEnteredValue: { numberValue: 15 } }] }
+                  ]
+                }]
+              },
+              {
+                properties: { title: 'Bookings' },
+                data: [{
+                  startRow: 0,
+                  startColumn: 0,
+                  rowData: [{
+                    values: [
+                      { userEnteredValue: { stringValue: 'Teacher' } },
+                      { userEnteredValue: { stringValue: 'Slot Time' } },
+                      { userEnteredValue: { stringValue: 'Student Name' } },
+                      { userEnteredValue: { stringValue: 'Student Email' } },
+                      { userEnteredValue: { stringValue: 'Timestamp' } }
+                    ]
+                  }]
+                }]
+              }
+            ]
+          })
+        });
+        
+        const sheet = await createResponse.json();
+        
+        if (sheet.error) {
+          throw new Error(sheet.error.message);
+        }
+        
+        createdSheetId = sheet.spreadsheetId;
+        createdSheetUrl = sheet.spreadsheetUrl;
+        
+        status.innerHTML = `
+          <div class="success">
+            ✓ Sheet created successfully!<br>
+            <a href="${createdSheetUrl}" target="_blank">Open Sheet</a>
+          </div>
+        `;
+        
+        // Update step 4 link
+        document.getElementById('sheetLink').href = createdSheetUrl;
+        document.getElementById('step3NextBtn').disabled = false;
+        
+        btn.innerHTML = '✓ Sheet Created';
+        
+      } catch (error) {
+        status.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        btn.disabled = false;
+        btn.innerHTML = '📊 Create Feedback Slots Sheet';
+      }
+    }
+    
+    function copyAppsScript() {
+      navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => btn.textContent = 'Copy Code', 2000);
+      });
+    }
+    
+    function finishWizard() {
+      const url = document.getElementById('wizardScriptUrl').value.trim();
+      if (!url || !url.includes('script.google.com')) {
+        alert('Please paste your deployed Apps Script URL');
+        return;
+      }
+      
+      SCRIPT_URL = url;
+      localStorage.setItem('slotBookingScriptUrl', url);
+      document.getElementById('scriptUrl').value = url;
+      document.getElementById('configNotice').style.display = 'none';
+      document.getElementById('mainTabs').style.display = 'flex';
+      document.getElementById('adminAccessHint').style.display = 'block';
+      closeWizard();
+      loadData();
+      
+      // Show admin mode after setup so they can configure
+      adminMode = true;
+      document.getElementById('adminTabBtn').style.display = 'block';
+      showTab('admin');
+      
+      alert('🎉 Setup complete! Configure your feedback date and add teachers.');
+    }
+    
+    function toggleAdminMode() {
+      adminMode = !adminMode;
+      document.getElementById('adminTabBtn').style.display = adminMode ? 'block' : 'none';
+      if (!adminMode) {
+        showTab('student');
+      }
+    }
+    
+    function saveScriptUrl() {
+      SCRIPT_URL = document.getElementById('scriptUrl').value.trim();
+      if (SCRIPT_URL) {
+        localStorage.setItem('slotBookingScriptUrl', SCRIPT_URL);
+        document.getElementById('configNotice').style.display = 'none';
+        loadData();
+      }
+    }
+    
+    // Tab switching
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      
+      if (tab === 'student') {
+        document.querySelector('.tabs .tab:first-child').classList.add('active');
+        document.getElementById('studentPanel').classList.add('active');
+      } else {
+        document.querySelector('.tabs .tab:last-child').classList.add('active');
+        document.getElementById('adminPanel').classList.add('active');
+      }
+    }
+    
+    // API calls
+    async function apiGet(action) {
+      const response = await fetch(`${SCRIPT_URL}?action=${action}`);
+      return response.json();
+    }
+    
+    async function apiPost(data) {
+      const response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      return response.json();
+    }
+    
+    // Load all data
+    async function loadData() {
+      if (!SCRIPT_URL) return;
+      
+      try {
+        document.getElementById('studentLoading').style.display = 'block';
+        document.getElementById('noFutureSlots').style.display = 'none';
+        const data = await apiGet('getAll');
+        
+        teachers = data.teachers || [];
+        config = data.config || config;
+        bookings = data.bookings || [];
+        
+        // Update config form
+        document.getElementById('slotDuration').value = config.slotDuration;
+        document.getElementById('slotsBeforeBreak').value = config.slotsBeforeBreak;
+        document.getElementById('breakDuration').value = config.breakDuration;
+        if (config.feedbackDate) {
+          document.getElementById('feedbackDate').value = config.feedbackDate;
+        }
+        
+        // Update feedback date display for students
+        updateFeedbackDateDisplay();
+        
+        renderTeacherTable();
+        renderBookingsTable();
+        renderSlotGrid();
+        
+        document.getElementById('studentLoading').style.display = 'none';
+      } catch (error) {
+        console.error('Error loading data:', error);
+        document.getElementById('studentLoading').innerHTML = 
+          '<div class="error">Failed to load data. Check your Script URL.</div>';
+      }
+    }
+    
+    function updateFeedbackDateDisplay() {
+      const dateDisplay = document.getElementById('feedbackDateDisplay');
+      if (config.feedbackDate) {
+        const date = new Date(config.feedbackDate + 'T00:00:00');
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateDisplay.innerHTML = `<strong>📅 Feedback Date:</strong> ${date.toLocaleDateString(undefined, options)}`;
+      } else {
+        dateDisplay.innerHTML = '<em>No feedback date set yet.</em>';
+      }
+    }
+    
+    // Check if a slot time is in the past
+    function isSlotInPast(timeStr) {
+      if (!config.feedbackDate) return false;
+      
+      const now = new Date();
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const slotDate = new Date(config.feedbackDate + 'T00:00:00');
+      slotDate.setHours(hours, minutes, 0, 0);
+      
+      return slotDate < now;
+    }
+    
+    // Check if feedback date is in the past
+    function isFeedbackDatePast() {
+      if (!config.feedbackDate) return true;
+      
+      const now = new Date();
+      const feedbackDate = new Date(config.feedbackDate + 'T23:59:59');
+      return feedbackDate < now;
+    }
+    
+    // Generate time slots for a teacher
+    function generateSlots(teacher) {
+      const slots = [];
+      const [fromH, fromM] = teacher.availableFrom.split(':').map(Number);
+      const [untilH, untilM] = teacher.availableUntil.split(':').map(Number);
+      
+      let currentTime = fromH * 60 + fromM;
+      const endTime = untilH * 60 + untilM;
+      let slotCount = 0;
+      
+      while (currentTime + config.slotDuration <= endTime) {
+        // Add break if needed
+        if (slotCount > 0 && slotCount % config.slotsBeforeBreak === 0) {
+          slots.push({
+            time: formatTime(currentTime),
+            isBreak: true
+          });
+          currentTime += config.breakDuration;
+          if (currentTime + config.slotDuration > endTime) break;
+        }
+        
+        const timeStr = formatTime(currentTime);
+        const booking = bookings.find(b => 
+          b.teacher === teacher.name && b.slotTime === timeStr
+        );
+        
+        const isPast = isSlotInPast(timeStr);
+        
+        slots.push({
+          time: timeStr,
+          isBreak: false,
+          isBooked: !!booking,
+          isPast: isPast,
+          booking: booking
+        });
+        
+        currentTime += config.slotDuration;
+        slotCount++;
+      }
+      
+      return slots;
+    }
+    
+    function formatTime(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+    
+    // Render slot grid for students
+    function renderSlotGrid() {
+      const grid = document.getElementById('slotGrid');
+      const noSlotsMsg = document.getElementById('noFutureSlots');
+      
+      // Check if feedback date is configured and not in the past
+      if (!config.feedbackDate || isFeedbackDatePast()) {
+        grid.innerHTML = '';
+        noSlotsMsg.style.display = 'block';
+        noSlotsMsg.innerHTML = isFeedbackDatePast() && config.feedbackDate
+          ? '<strong>Feedback session has ended</strong><br>The feedback date has passed.'
+          : '<strong>No feedback date set</strong><br>Please check back later when the feedback session is scheduled.';
+        return;
+      }
+      
+      if (teachers.length === 0) {
+        grid.innerHTML = '';
+        noSlotsMsg.style.display = 'block';
+        noSlotsMsg.innerHTML = '<strong>No teachers available yet</strong><br>Please check back later.';
+        return;
+      }
+      
+      noSlotsMsg.style.display = 'none';
+      
+      // Check if there are any future available slots
+      let hasAnyFutureSlots = false;
+      
+      grid.innerHTML = teachers.map(teacher => {
+        const slots = generateSlots(teacher);
+        const futureSlots = slots.filter(s => !s.isPast || s.isBreak);
+        const firstAvailable = futureSlots.find(s => !s.isBreak && !s.isBooked && !s.isPast);
+        
+        if (firstAvailable) hasAnyFutureSlots = true;
+        
+        // Only show future slots to students
+        const visibleSlots = futureSlots;
+        
+        if (visibleSlots.length === 0) {
+          return `
+            <div class="teacher-card">
+              <div class="teacher-card-header">
+                <h3>${teacher.name}</h3>
+                <small>${teacher.availableFrom} - ${teacher.availableUntil}</small>
+              </div>
+              <div class="teacher-card-body">
+                <p style="color: #666; text-align: center;">No more slots available today</p>
+              </div>
+            </div>
+          `;
+        }
+        
+        return `
+          <div class="teacher-card">
+            <div class="teacher-card-header">
+              <h3>${teacher.name}</h3>
+              <small>${teacher.availableFrom} - ${teacher.availableUntil}</small>
+            </div>
+            <div class="teacher-card-body">
+              <div class="slot-list">
+                ${visibleSlots.map(slot => {
+                  if (slot.isBreak) {
+                    return `<div class="slot-item break">
+                      <span class="slot-time">${slot.time}</span>
+                      <span class="slot-status">☕ Break</span>
+                    </div>`;
+                  }
+                  
+                  const isFirst = firstAvailable && slot.time === firstAvailable.time;
+                  const classes = slot.isBooked ? 'booked' : (isFirst ? 'first-available' : 'available');
+                  
+                  return `<div class="slot-item ${classes}">
+                    <span class="slot-time">${slot.time}</span>
+                    ${slot.isBooked 
+                      ? `<span class="slot-status">Booked: ${slot.booking.studentName}</span>`
+                      : isFirst 
+                        ? `<button class="btn-primary book-btn" onclick="openBookingModal('${teacher.name}', '${slot.time}')">Book Now</button>`
+                        : `<span class="slot-status">Available</span>`
+                    }
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // Render teacher table for admin
+    function renderTeacherTable() {
+      const tbody = document.getElementById('teacherTableBody');
+      tbody.innerHTML = teachers.map(t => `
+        <tr>
+          <td>${t.name}</td>
+          <td>${t.availableFrom}</td>
+          <td>${t.availableUntil}</td>
+          <td>
+            <button class="btn-danger" onclick="deleteTeacher(${t.row})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    // Render bookings table for admin
+    function renderBookingsTable() {
+      const tbody = document.getElementById('bookingsTableBody');
+      
+      if (bookings.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No bookings yet.</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = bookings.map(b => `
+        <tr>
+          <td>${b.teacher}</td>
+          <td>${b.slotTime}</td>
+          <td>${b.studentName}</td>
+          <td>${b.studentEmail}</td>
+          <td>
+            <button class="btn-danger" onclick="cancelBooking(${b.row})">Cancel</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    // Admin functions
+    async function addTeacher() {
+      const name = document.getElementById('teacherName').value.trim();
+      const from = document.getElementById('teacherFrom').value;
+      const until = document.getElementById('teacherUntil').value;
+      
+      if (!name) {
+        alert('Please enter a teacher name');
+        return;
+      }
+      
+      await apiPost({
+        action: 'addTeacher',
+        name: name,
+        availableFrom: from,
+        availableUntil: until
+      });
+      
+      document.getElementById('teacherName').value = '';
+      loadData();
+    }
+    
+    async function deleteTeacher(row) {
+      if (!confirm('Delete this teacher?')) return;
+      await apiPost({ action: 'deleteTeacher', row: row });
+      loadData();
+    }
+    
+    async function saveConfig() {
+      await apiPost({
+        action: 'updateConfig',
+        slotDuration: parseInt(document.getElementById('slotDuration').value),
+        slotsBeforeBreak: parseInt(document.getElementById('slotsBeforeBreak').value),
+        breakDuration: parseInt(document.getElementById('breakDuration').value),
+        feedbackDate: document.getElementById('feedbackDate').value
+      });
+      alert('Configuration saved!');
+      loadData();
+    }
+    
+    async function cancelBooking(row) {
+      if (!confirm('Cancel this booking?')) return;
+      await apiPost({ action: 'cancelBooking', row: row });
+      loadData();
+    }
+    
+    // Student booking functions
+    function openBookingModal(teacher, time) {
+      pendingBooking = { teacher, time };
+      document.getElementById('bookingInfo').textContent = 
+        `Booking slot with ${teacher} at ${time}`;
+      document.getElementById('bookingModal').classList.add('active');
+    }
+    
+    function closeModal() {
+      document.getElementById('bookingModal').classList.remove('active');
+      pendingBooking = null;
+    }
+    
+    async function confirmBooking() {
+      const name = document.getElementById('studentName').value.trim();
+      const email = document.getElementById('studentEmail').value.trim();
+      
+      if (!name || !email) {
+        alert('Please fill in all fields');
+        return;
+      }
+      
+      const result = await apiPost({
+        action: 'bookSlot',
+        teacher: pendingBooking.teacher,
+        slotTime: pendingBooking.time,
+        studentName: name,
+        studentEmail: email
+      });
+      
+      if (result.success) {
+        alert('Booking confirmed!');
+        closeModal();
+        loadData();
+      } else {
+        alert('Booking failed: ' + (result.error || 'Unknown error'));
+      }
+    }
+  </script>
+</body>
+</html>
